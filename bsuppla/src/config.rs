@@ -12,7 +12,7 @@ const DEFAULT_OUTPUT_DIR: &str = "container_fs";
 #[derive(Parser, Debug)]
 #[command(
     name = "bsuppla",
-    version,
+    version = "1.0",
     about = "Static scanner for Docker images",
     arg_required_else_help = true
 )]

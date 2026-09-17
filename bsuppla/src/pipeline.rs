@@ -9,6 +9,12 @@ use crate::error::Result;
 use crate::{ingest, scan};
 
 pub fn run(cfg: &Config) -> Result<()> {
+
+    println!("Welcome to bsuppla!");
+
+    ingest::is_docker_installed()?;
+    ingest::is_docker_deamon_runnig()?;
+
     if !cfg.skip_docker {
         ingest::pull(&cfg.image)?;
         println!("[+] Image ready for scanning");

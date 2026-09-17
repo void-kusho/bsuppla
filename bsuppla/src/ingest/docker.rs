@@ -3,11 +3,39 @@
 use std::process::Command;
 
 use crate::error::{Error, Result};
+use which::which;
+
+
+// Check if docker is installed
+pub fn is_docker_installed() -> Result<()> {
+    let is_installed =  which("docker").is_ok();
+    if is_installed {
+        Ok(())
+    } else {
+        Err(Error::Docker("Docker not installed or not found".to_string()))
+    }
+}
+
+// Check if docker deamon is runnig
+pub fn is_docker_deamon_runnig() -> Result<()> {
+    let output = Command::new("docker")
+        .args(["info", "--format", "{{.ServerVersion}}"])
+        .output()
+        .map(|o| o.status.success())
+        .unwrap_or(false);
+
+    if output {
+        Ok(())
+    } else {
+        Err(Error::Docker("Deamon is not running".to_string()))
+    }
+}
+
 
 /// Pull an image from a registry.
 pub fn pull(image: &str) -> Result<()> {
+
     println!("[+] Image: {image}");
-    println!("Make sure you have docker installed and running");
 
     let output = Command::new("docker")
         .args(["pull", image])

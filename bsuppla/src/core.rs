@@ -5,6 +5,7 @@
 
 use std::path::PathBuf;
 
+// Defines the severity level
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Severity {
     Critical,

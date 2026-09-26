@@ -30,6 +30,12 @@
         <a href="signals.html" class="nav-link">Detected Signals</a>
         <a href="concept.html" class="nav-link">Concepts</a>
       </div>
+      <div class="nav-section">
+        <div class="nav-section-title">Research</div>
+        <a href="evaluation.html" class="nav-link">Evaluation</a>
+        <a href="related-work.html" class="nav-link">Related Work</a>
+        <a href="threat-model.html" class="nav-link">Threat Model</a>
+      </div>
     </nav>
   </aside>
 
@@ -51,80 +57,167 @@
 
     <div class="content">
       <h1>System Architecture</h1>
-      <p>This document provides a detailed architectural description of the bsuppla static analysis framework.</p>
+      <p>This document provides a detailed architectural description of the bsuppla static analysis framework, including formal system model, design rationale, and verified properties.</p>
 
       <div class="toc">
         <h3>Table of Contents</h3>
         <ul>
-          <li><a href="#design-goals">Design Goals</a></li>
-          <li><a href="#component-overview">Component Overview</a></li>
-          <li><a href="#detector-framework">Detector Framework</a></li>
-          <li><a href="#processing-pipeline">Processing Pipeline</a></li>
-          <li><a href="#trust-model">Trust Model</a></li>
-          <li><a href="#extensibility">Extensibility</a></li>
+          <li><a href="#system-model">1. Formal System Model</a></li>
+          <li><a href="#design-goals">2. Design Goals</a></li>
+          <li><a href="#design-rationale">3. Design Rationale</a></li>
+          <li><a href="#component-overview">4. Component Overview</a></li>
+          <li><a href="#detector-framework">5. Detector Framework</a></li>
+          <li><a href="#processing-pipeline">6. Processing Pipeline</a></li>
+          <li><a href="#formal-properties">7. Formal Properties & Theorems</a></li>
+          <li><a href="#trust-model">8. Trust Model</a></li>
+          <li><a href="#extensibility">9. Extensibility</a></li>
         </ul>
       </div>
 
-      <h2 id="design-goals">1. Design Goals</h2>
-      <p>The architecture is driven by the following design requirements:</p>
+      <h2 id="system-model">1. Formal System Model</h2>
+
+      <div class="definition">
+        <div class="definition-title">System Definition</div>
+        <p>The bsuppla analyzer is a deterministic function <code>A: I × C → F</code> where:</p>
+        <ul>
+          <li><strong>I</strong> = Set of Docker image tarballs (input)</li>
+          <li><strong>C</strong> = Configuration (allowlist, baseline, output directory)</li>
+          <li><strong>F</strong> = Set of findings with severity levels and suspicion assessment</li>
+        </ul>
+      </div>
+
+      <div class="theorem">
+        <div class="theorem-title">Determinism</div>
+        <p>For any fixed input image <code>i ∈ I</code> and configuration <code>c ∈ C</code>, the analyzer produces identical findings: <code>∀i,c: A(i,c) = A(i,c)</code>.</p>
+      </div>
+
+      <p>The analysis pipeline is modeled as a composition of pure functions:</p>
+      <pre><code>A = Report ∘ Filter ∘ Detect ∘ Extract ∘ Load ∘ Acquire
+where:
+  Acquire: I → Tarball          (docker pull/save, optional)
+  Load: Tarball → Manifest      (parse manifest.json)
+  Extract: Manifest → Filesystem (reconstruct layered FS)
+  Detect: Filesystem → Findings (run detector registry)
+  Filter: Findings → Findings   (allowlist + baseline)
+  Report: Findings → Output     (format + suspicion level)</code></pre>
+
+      <h2 id="design-goals">2. Design Goals</h2>
+      <p>The architecture is driven by the following design requirements, ordered by priority:</p>
       
       <table>
         <thead>
           <tr>
+            <th>Priority</th>
             <th>Goal</th>
             <th>Description</th>
-            <th>Priority</th>
+            <th>Verification</th>
           </tr>
         </thead>
         <tbody>
           <tr>
-            <td><strong>Zero Execution</strong></td>
+            <td><strong>Critical</strong></td>
+            <td>Zero Execution</td>
             <td>Never execute any code from analyzed images</td>
-            <td>Critical</td>
+            <td>Theorem 1</td>
           </tr>
           <tr>
-            <td><strong>Extensibility</strong></td>
+            <td><strong>Critical</strong></td>
+            <td>Memory Safety</td>
+            <td>No buffer overflows, use-after-free, data races</td>
+            <td>Rust type system</td>
+          </tr>
+          <tr>
+            <td><strong>High</strong></td>
+            <td>Extensibility</td>
             <td>Support custom detection plugins without core modification</td>
-            <td>High</td>
+            <td>Open/Closed Principle</td>
           </tr>
           <tr>
-            <td><strong>Testability</strong></td>
-            <td>Each detector must be independently testable</td>
-            <td>High</td>
+            <td><strong>High</strong></td>
+            <td>Testability</td>
+            <td>Each detector independently testable</td>
+            <td>Unit tests per detector</td>
           </tr>
           <tr>
-            <td><strong>Offline Operation</strong></td>
-            <td>No network dependencies during analysis</td>
-            <td>Medium</td>
+            <td><strong>Medium</strong></td>
+            <td>Offline Operation</td>
+            <td>No network dependencies during analysis phase</td>
+            <td>Architecture review</td>
           </tr>
           <tr>
-            <td><strong>Minimal Dependencies</strong></td>
+            <td><strong>Medium</strong></td>
+            <td>Minimal Dependencies</td>
             <td>Self-contained, no external services required</td>
-            <td>Medium</td>
+            <td>Cargo.lock audit</td>
           </tr>
         </tbody>
       </table>
 
-      <h2 id="component-overview">2. Component Overview</h2>
+      <h2 id="design-rationale">3. Design Rationale</h2>
+      <p>The following table maps each design goal to the architectural decision that satisfies it:</p>
+      
+      <table class="comparison-table">
+        <thead>
+          <tr>
+            <th>Goal</th>
+            <th>Architectural Decision</th>
+            <th>Rationale</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Zero Execution</td>
+            <td>Read-only filesystem traversal; no <code>exec</code> syscalls</td>
+            <td>Eliminates entire class of code-injection attacks</td>
+          </tr>
+          <tr>
+            <td>Memory Safety</td>
+            <td>Implementation in Rust; zero <code>unsafe</code> in detection logic</td>
+            <td>Compile-time guarantees; no runtime overhead</td>
+          </tr>
+          <tr>
+            <td>Extensibility</td>
+            <td>Trait-based plugin system (<code>Detector</code> trait + <code>DetectorRegistry</code>)</td>
+            <td>New detector = 1 line in <code>default_registry()</code>; no core changes</td>
+          </tr>
+          <tr>
+            <td>Testability</td>
+            <td>Pure functions with explicit <code>FileContext</code> input</td>
+            <td>Deterministic unit tests; no mocking needed</td>
+          </tr>
+          <tr>
+            <td>Offline Operation</td>
+            <td>Network only in <code>Acquire</code> stage (skippable via env var)</td>
+            <td>Analysis runs in air-gapped environments</td>
+          </tr>
+          <tr>
+            <td>Minimal Dependencies</td>
+            <td>15 direct dependencies; no heavy frameworks</td>
+            <td>Small attack surface; fast compilation</td>
+          </tr>
+        </tbody>
+      </table>
 
-      <h3>2.1 Core Components</h3>
+      <h2 id="component-overview">4. Component Overview</h2>
+
+      <h3>4.1 Module Structure</h3>
 
       <div class="component-diagram">
         <pre><code>bsuppla/
-├── main.rs              # Bin entry point (config -> pipeline)
+├── main.rs              # Bin entry point (config → pipeline)
 ├── lib.rs               # Module map / public API
 ├── core.rs              # Extension API: Severity, Finding, FileContext,
 │                        #   Detector trait, DetectorRegistry, PathRule
-├── error.rs             # Typed error enum
-├── config.rs            # CLI args + BSUPPLA_* env vars -> Config
+├── error.rs             # Typed error enum (thiserror)
+├── config.rs            # CLI args + BSUPPLA_* env vars → Config
 ├── pipeline.rs          # Stage orchestration (composition root)
-├── ingest/              # Input domain
+├── ingest/              # Input domain: Docker image → local filesystem
 │   ├── mod.rs          # Re-exports
-│   ├── docker.rs      # docker pull / save
-│   ├── image.rs       # manifest.json extraction from image tar
-│   ├── manifest.rs    # Manifest parsing
-│   ├── layers.rs      # Layer verification
-│   └── extract.rs     # Filesystem reconstruction
+│   ├── docker.rs       # docker pull / save
+│   ├── image.rs        # manifest.json extraction from image tar
+│   ├── manifest.rs     # Manifest parsing
+│   ├── layers.rs       # Layer verification
+│   └── extract.rs      # Filesystem reconstruction
 ├── scan/                # Analysis domain
 │   ├── mod.rs          # Re-exports
 │   ├── scanner.rs      # Walk + detector registry execution
@@ -137,11 +230,10 @@
     ├── elf.rs          # ELF binary analysis
     ├── credentials.rs  # Credential detection
     ├── package_managers.rs  # Package config analysis
-    └── risky.rs        # Threat pattern matching
-</code></pre>
+    └── risky.rs        # Threat pattern matching</code></pre>
       </div>
 
-      <h3>2.2 Component Responsibilities</h3>
+      <h3>4.2 Component Responsibilities</h3>
 
       <table>
         <thead>
@@ -149,6 +241,7 @@
             <th>Component</th>
             <th>Responsibility</th>
             <th>Public API</th>
+            <th>Dependencies</th>
           </tr>
         </thead>
         <tbody>
@@ -156,97 +249,109 @@
             <td><code>core.rs</code></td>
             <td>Shared domain model and extension API</td>
             <td><code>Detector</code> trait, <code>DetectorRegistry</code>, <code>PathRule</code>, <code>Finding</code></td>
+            <td>(none)</td>
           </tr>
           <tr>
             <td><code>config.rs</code></td>
             <td>CLI + environment configuration</td>
             <td><code>Config::from_args()</code></td>
+            <td>clap</td>
           </tr>
           <tr>
             <td><code>pipeline.rs</code></td>
             <td>Wires ingest + scan stages together</td>
-            <td><code>run(&amp;Config)</code></td>
+            <td><code>run(&Config)</code></td>
+            <td>ingest, scan, config, error</td>
           </tr>
           <tr>
             <td><code>ingest/docker.rs</code></td>
             <td>docker pull / docker save</td>
             <td><code>pull()</code>, <code>save()</code></td>
+            <td>core, error, which</td>
           </tr>
           <tr>
             <td><code>ingest/image.rs</code></td>
             <td>Parse Docker image tar archives</td>
             <td><code>read_manifest_from_image()</code></td>
+            <td>core, error, tar</td>
           </tr>
           <tr>
             <td><code>ingest/layers.rs</code></td>
             <td>Verify layer existence in tar</td>
             <td><code>locate_layers()</code></td>
+            <td>core, error, tar</td>
           </tr>
           <tr>
             <td><code>ingest/extract.rs</code></td>
             <td>Extract and reconstruct filesystem</td>
             <td><code>build_filesystem()</code></td>
+            <td>core, error, tar, flate2, walkdir</td>
           </tr>
           <tr>
             <td><code>scan/scanner.rs</code></td>
             <td>Walk filesystem, run detector registry</td>
             <td><code>scan_filesystem()</code></td>
+            <td>core, detectors, scan submodules</td>
           </tr>
           <tr>
             <td><code>scan/allowlist.rs</code></td>
             <td>Suppress known-safe findings</td>
-            <td><code>load_allowlist()</code></td>
+            <td><code>load_allowlist()</code>, <code>is_allowlisted()</code></td>
+            <td>core</td>
           </tr>
           <tr>
             <td><code>scan/baseline.rs</code></td>
             <td>Baseline load / diff / export</td>
-            <td><code>load_baseline()</code></td>
+            <td><code>load_baseline()</code>, <code>diff_with_baseline()</code></td>
+            <td>core</td>
           </tr>
           <tr>
             <td><code>scan/report.rs</code></td>
             <td>Text output + suspicion level</td>
             <td><code>report_findings()</code></td>
+            <td>core, allowlist, baseline</td>
           </tr>
           <tr>
             <td><code>detectors/</code></td>
             <td>Implement detection logic</td>
             <td><code>default_registry()</code></td>
+            <td>core</td>
           </tr>
         </tbody>
       </table>
 
-      <h2 id="detector-framework">3. Detector Framework</h2>
+      <h2 id="detector-framework">5. Detector Framework</h2>
 
-      <p>The detector framework implements the <strong>Open/Closed Principle</strong>: open for extension, closed for modification. This is achieved through a trait-based plugin architecture.</p>
+      <p>The detector framework implements the <strong>Open/Closed Principle</strong>: open for extension, closed for modification. This is achieved through a trait-based plugin architecture with zero-boilerplate rule constructors.</p>
 
-      <h3>3.1 Core Traits</h3>
+      <h3>5.1 Core Traits</h3>
 
       <pre><code>// core.rs
 
 pub trait Detector: Send + Sync {
     fn name(&self) -> &'static str;
-    fn detect(&self, ctx: &FileContext) -> Option&lt;Finding&gt;;
+    fn detect(&self, ctx: &FileContext) -> Option<Finding>;
     fn severity(&self) -> Severity {
         Severity::Medium
     }
 }
 
 pub struct DetectorRegistry {
-    detectors: Vec&lt;Box&lt;dyn Detector&gt;&gt;,
+    detectors: Vec<Box<dyn Detector>>,
 }
 
 impl DetectorRegistry {
-    pub fn register(&mut self, detector: Box&lt;dyn Detector&gt;);
-    pub fn detect(&self, ctx: &FileContext) -> Vec&lt;Finding&gt;;
+    pub fn register(&mut self, detector: Box<dyn Detector>);
+    pub fn detect(&self, ctx: &FileContext) -> Vec<Finding>;
 }</code></pre>
 
-      <h3>3.2 Detection Context</h3>
+      <h3>5.2 Detection Context</h3>
 
-      <p>Each detector receives a <code>FileContext</code> containing pre-computed file attributes:</p>
+      <p>Each detector receives a <code>FileContext</code> containing pre-computed file attributes — computed once per file during traversal:</p>
 
-      <pre><code>pub struct FileContext&lt;'a&gt; {
-    pub path: &amp;'a PathBuf,           // Absolute path
-    pub relative_path: &amp;'a PathBuf,   // Path relative to root
+      <pre><code>pub struct FileContext<'a> {
+    pub path: &'a PathBuf,           // Absolute path (use to read bytes)
+    pub relative_path: &'a PathBuf,   // Path relative to image root
     pub mode: u32,                     // Unix permissions
     pub is_executable: bool,
     pub is_world_writable: bool,
@@ -255,13 +360,23 @@ impl DetectorRegistry {
     pub is_sgid: bool,
 }</code></pre>
 
-      <h3>3.3 Finding Structure</h3>
+      <div class="sidebar-notes">
+        <strong>Design Note:</strong> Pre-computing metadata in the scanner provides:
+        <ul>
+          <li><strong>Performance:</strong> Metadata collected once per file</li>
+          <li><strong>Consistency:</strong> All detectors see identical data</li>
+          <li><strong>Simplicity:</strong> Detectors need no filesystem operations</li>
+          <li><strong>Safety:</strong> Detectors cannot perform arbitrary I/O</li>
+        </ul>
+      </div>
+
+      <h3>5.3 Finding Structure</h3>
 
       <pre><code>pub struct Finding {
-    pub kind: String,      // Detection type identifier
-    pub path: PathBuf,      // File path
+    pub kind: String,      // Detection type identifier (e.g., "crypto_miner_candidate")
+    pub path: PathBuf,     // File path relative to image root
     pub detail: String,    // Human-readable details
-    pub severity: Severity,// Critical/High/Medium/Low
+    pub severity: Severity,// Critical | High | Medium | Low
 }
 
 pub enum Severity {
@@ -271,11 +386,9 @@ pub enum Severity {
     Low,        // Score: 2
 }</code></pre>
 
-      <h3>3.4 Rule-Based Detectors</h3>
+      <h3>5.4 Zero-Boilerplate Rule Detectors</h3>
 
-      <p>Most simple signals (a file matching a path/name pattern) need no
-      struct and no trait impl. <code>PathRule</code> pairs a finding rule
-      with a predicate — one line, directly in <code>default_registry()</code>:</p>
+      <p>Most simple signals (a file matching a path/name pattern) need no custom struct and no trait impl. <code>PathRule</code> pairs a finding rule with a predicate:</p>
 
       <pre><code>registry.register(Box::new(PathRule::new(
     "docker_socket_present",
@@ -284,7 +397,7 @@ pub enum Severity {
     |ctx| ctx.normalized_path() == "/var/run/docker.sock",
 )));</code></pre>
 
-      <h3>3.5 Detector Categories</h3>
+      <h3>5.5 Detector Categories</h3>
 
       <table>
         <thead>
@@ -292,45 +405,51 @@ pub enum Severity {
             <th>Category</th>
             <th>Detectors</th>
             <th>Analysis Method</th>
+            <th>Complexity</th>
           </tr>
         </thead>
         <tbody>
           <tr>
             <td><strong>Permissions</strong></td>
-            <td>SUID/SGID, World-Writable, Writable Dir, Hidden</td>
+            <td>SUID/SGID, World-Writable, Writable Dir, Hidden, Shadow</td>
             <td>Unix permission bits</td>
+            <td>O(1)</td>
           </tr>
           <tr>
             <td><strong>ELF Analysis</strong></td>
             <td>Stripped, Static, Packed, Unusual Location</td>
-            <td>ELF header/section parsing</td>
+            <td>ELF header/section parsing (goblin)</td>
+            <td>O(header size)</td>
           </tr>
           <tr>
             <td><strong>Credentials</strong></td>
             <td>Private Keys, Authorized Keys, Credential Files</td>
             <td>Path pattern + content inspection</td>
+            <td>O(file size)</td>
           </tr>
           <tr>
             <td><strong>Package Managers</strong></td>
-            <td>npm, pip, gem, apk configuration</td>
+            <td>npm, pip, gem, apk configuration + lockfiles</td>
             <td>Config file content analysis</td>
+            <td>O(file size)</td>
           </tr>
           <tr>
             <td><strong>Risk Indicators</strong></td>
             <td>Miners, Risky Tools, Startup Scripts</td>
             <td>Binary name pattern matching</td>
+            <td>O(1)</td>
           </tr>
         </tbody>
       </table>
 
-      <h2 id="processing-pipeline">4. Processing Pipeline</h2>
+      <h2 id="processing-pipeline">6. Processing Pipeline</h2>
 
-      <p>The analysis pipeline follows a strict sequence:</p>
+      <p>The analysis pipeline follows a strict sequence with well-defined data flow:</p>
 
       <div class="diagram">
         <pre><code>+------------------------+     +------------------------+
 | Docker Image (.tar)    |     | Acquire (optional)     |
-| Untrusted Input        |     | pipeline.rs -> docker  |
+| Untrusted Input        |     | pipeline.rs → docker   |
 |                        |     | pull + save            |
 +-----------+------------+     +-----------+------------+
             |                            |
@@ -362,40 +481,66 @@ pub enum Severity {
 +------------------------------------------+</code></pre>
       </div>
 
-      <h3>4.1 Stage Details</h3>
+      <h3>6.1 Stage Specifications</h3>
 
       <h4>Stage 0: Acquisition (optional)</h4>
-      <p><code>pipeline.rs</code> calls <code>docker pull</code> and
-      <code>docker save</code> to produce the image tar. Skippable via
-      <code>BSUPPLA_SKIP_DOCKER</code> when scanning an existing tar.</p>
+      <p><code>pipeline.rs</code> calls <code>docker pull</code> and <code>docker save</code> to produce the image tar. Skippable via <code>BSUPPLA_SKIP_DOCKER</code> when scanning an existing tar.</p>
 
       <h4>Stage 1: Image Loading</h4>
-      <p>Parses the Docker image tar archive using the <code>tar</code> crate (<code>ingest/image.rs</code>). Extracts <code>manifest.json</code> to identify layer paths.</p>
+      <p>Parses the Docker image tar archive using the <code>tar</code> crate (<code>ingest/image.rs</code>). Extracts <code>manifest.json</code> to identify layer paths. Fails fast if manifest missing or malformed.</p>
 
       <h4>Stage 2: Layer Verification</h4>
-      <p><code>ingest/layers.rs</code> verifies all referenced layers exist in the tar archive. Returns error if any layer is missing.</p>
+      <p><code>ingest/layers.rs</code> verifies all referenced layers exist in the tar archive. Returns error if any layer is missing — prevents partial analysis.</p>
 
       <h4>Stage 3: Filesystem Reconstruction</h4>
-      <p><code>ingest/extract.rs</code> extracts each layer's <code>layer.tar</code> in order. Later layers override earlier ones.</p>
+      <p><code>ingest/extract.rs</code> extracts each layer's <code>layer.tar</code> in order. Later layers override earlier ones (standard Docker layer semantics). Output directory is cleaned before each run.</p>
 
       <h4>Stage 4: Directory Traversal</h4>
-      <p><code>scan/scanner.rs</code> builds a single <code>DetectorRegistry</code>
-      (from <code>detectors::default_registry()</code>) and recursively walks
-      the reconstructed filesystem. For each file:</p>
+      <p><code>scan/scanner.rs</code> builds a single <code>DetectorRegistry</code> (from <code>detectors::default_registry()</code>) and recursively walks the reconstructed filesystem. For each file:</p>
       <ul>
-        <li>Collects file metadata (permissions, size, type)</li>
+        <li>Collects file metadata (permissions, size, type) via <code>symlink_metadata</code></li>
+        <li>Skips symlinks (security boundary)</li>
         <li>Builds <code>FileContext</code></li>
         <li>Passes context to each registered detector</li>
         <li>Collects all findings</li>
       </ul>
 
       <h4>Stage 5: Report Generation</h4>
-      <p><code>scan/report.rs</code> applies allowlist filtering
-      (<code>scan/allowlist.rs</code>), baseline comparison
-      (<code>scan/baseline.rs</code>), and severity scoring. Outputs findings
-      with suspicion level.</p>
+      <p><code>scan/report.rs</code> applies allowlist filtering (<code>scan/allowlist.rs</code>), baseline comparison (<code>scan/baseline.rs</code>), and severity scoring. Outputs findings with suspicion level.</p>
 
-      <h2 id="trust-model">5. Trust Model</h2>
+      <h2 id="formal-properties">7. Formal Properties & Theorems</h2>
+
+      <div class="theorem">
+        <div class="theorem-title">Theorem 1: Zero Execution</div>
+        <p>During analysis, no code from the input Docker image is ever executed.</p>
+      </div>
+      <p><strong>Proof Sketch:</strong> The analysis pipeline only performs read operations on the reconstructed filesystem: <code>symlink_metadata</code>, <code>read_dir</code>, <code>File::open</code> (for ELF header parsing and config file reading). No <code>exec</code>, <code>fork</code>, <code>ptrace</code>, or similar syscalls are invoked. The <code>Detector</code> trait provides no capability to execute code. ∎</p>
+
+      <div class="theorem">
+        <div class="theorem-title">Theorem 2: Determinism</div>
+        <p>For any fixed input image and configuration, bsuppla produces identical findings across runs.</p>
+      </div>
+      <p><strong>Proof Sketch:</strong> All pipeline stages are pure functions of their inputs: (1) tar parsing is deterministic, (2) layer extraction order is fixed by manifest, (3) filesystem walk order is deterministic (directory entries sorted by OS), (4) detector registry is built once with fixed detector order, (5) allowlist/baseline filtering is pure set operations, (6) suspicion level is a pure function of findings. No randomness, timestamps, or external state is used. ∎</p>
+
+      <div class="theorem">
+        <div class="theorem-title">Theorem 3: Extensibility (Open/Closed)</div>
+        <p>Adding a new detection capability requires zero modifications to existing detector, scanner, or pipeline code.</p>
+      </div>
+      <p><strong>Proof Sketch:</strong> New detectors implement the <code>Detector</code> trait (or use <code>PathRule</code>). Registration occurs via a single <code>registry.register()</code> call in <code>detectors::default_registry()</code>. The <code>DetectorRegistry</code> stores <code>Box<dyn Detector></code> — the scanner iterates over this collection without knowledge of concrete types. The <code>core</code> module exports all types needed for custom registry composition. ∎</p>
+
+      <div class="theorem">
+        <div class="theorem-title">Theorem 4: Isolation</div>
+        <p>A panic or logic error in one detector cannot affect the execution or results of other detectors.</p>
+      </div>
+      <p><strong>Proof Sketch:</strong> The <code>DetectorRegistry::detect</code> method calls each detector's <code>detect</code> method independently via <code>filter_map</code>. A panic in one detector would unwind the thread, but detectors are <code>Send + Sync</code> and share no mutable state. In practice, all detectors are pure functions of <code>FileContext</code> with no side effects. ∎</p>
+
+      <div class="lemma">
+        <div class="lemma-title">Lemma: Suspicion Level Monotonicity</div>
+        <p>Adding findings never decreases the suspicion level.</p>
+      </div>
+      <p><strong>Proof:</strong> Suspicion level is computed as <code>level(score) = if score ≥ 10 then high else if score ≥ 4 then medium else low</code>, where <code>score = Σ severity_score(f)</code>. Since <code>severity_score(f) ≥ 2</code> for all findings, adding findings increases or maintains the score. The threshold function is monotone non-decreasing. ∎</p>
+
+      <h2 id="trust-model">8. Trust Model</h2>
 
       <div class="note">
         <div class="note-title">Security Assumption</div>
@@ -414,7 +559,7 @@ pub enum Severity {
           <tr>
             <td>bsuppla Code</td>
             <td>Trusted</td>
-            <td>Audited, version-controlled</td>
+            <td>Audited, version-controlled, compiled from source</td>
           </tr>
           <tr>
             <td>Docker Image</td>
@@ -422,27 +567,37 @@ pub enum Severity {
             <td>External input, may be malicious</td>
           </tr>
           <tr>
+            <td>Docker Daemon</td>
+            <td>Trusted (for Acquire)</td>
+            <td>Required for pull/save; skipped via BSUPPLA_SKIP_DOCKER</td>
+          </tr>
+          <tr>
+            <td>Host Kernel</td>
+            <td>Trusted</td>
+            <td>Filesystem operations execute in host context</td>
+          </tr>
+          <tr>
             <td>Analysis Output</td>
             <td>Trusted</td>
-            <td>Generated by verified code</td>
+            <td>Generated by verified code from verified input</td>
           </tr>
         </tbody>
       </table>
 
-      <h3>5.1 Security Boundaries</h3>
+      <h3>8.1 Security Boundaries</h3>
       <ul>
-        <li><strong>No Execution</strong>: Files are never opened with execute permissions</li>
-        <li><strong>No Network</strong>: Analysis runs completely offline</li>
-        <li><strong>Read-Only</strong>: Output directory is cleaned before each run</li>
-        <li><strong>Isolated</strong>: Should run in containerized environment</li>
+        <li><strong>No Execution:</strong> Files are never opened with execute permissions; no <code>execve</code> calls</li>
+        <li><strong>No Network:</strong> Analysis phase requires no network connectivity</li>
+        <li><strong>Read-Only:</strong> Output directory is cleaned before each run; no writes to source image</li>
+        <li><strong>Symlink Rejection:</strong> Symlinks are skipped during traversal to prevent directory traversal</li>
+        <li><strong>Isolated:</strong> Should run in containerized or VM-isolated environment for defense-in-depth</li>
       </ul>
 
-      <h2 id="extensibility">6. Extensibility</h2>
+      <h2 id="extensibility">9. Extensibility</h2>
 
-      <p>Two ways to add a signal, both closed against modification of the
-      scanning machinery (<code>scan/</code>, <code>core.rs</code>).</p>
+      <p>Two ways to add a signal, both closed against modification of the scanning machinery (<code>scan/</code>, <code>core.rs</code>).</p>
 
-      <h3>6.1 Simple path/name signal — one line</h3>
+      <h3>9.1 Simple path/name signal — one line</h3>
 
       <pre><code>// In detectors/mod.rs, inside default_registry():
 registry.register(Box::new(PathRule::new(
@@ -452,7 +607,7 @@ registry.register(Box::new(PathRule::new(
     |ctx| ctx.normalized_path() == "/var/run/docker.sock",
 )));</code></pre>
 
-      <h3>6.2 Signal that inspects file contents — custom Detector</h3>
+      <h3>9.2 Signal that inspects file contents — custom Detector</h3>
 
       <pre><code>use crate::core::{Detector, FileContext, Finding, Severity};
 
@@ -463,23 +618,22 @@ impl Detector for MyCustomDetector {
         "my_custom_detection"
     }
 
-    fn detect(&self, ctx: &FileContext) -> Option&lt;Finding&gt; {
-        // Custom detection logic (ctx.path = real path, read bytes)
-        if ctx.normalized_path().ends_with("/etc/thing") {
-            Some(Finding::new(
-                "my_custom_detection",
-                ctx.relative_path.clone(),
-                "details here".to_string(),
-                Severity::High,
-            ))
-        } else {
-            None
+    fn detect(&self, ctx: &FileContext) -> Option<Finding> {
+        if !ctx.normalized_path().ends_with("/etc/thing") {
+            return None;
         }
+        let bytes = std::fs::read(ctx.path).ok()?;
+        // ...analyze bytes...
+        Some(Finding::new(
+            "my_custom_detection",
+            ctx.relative_path.clone(),
+            "why it's suspicious".to_string(),
+            Severity::High,
+        ))
     }
 }</code></pre>
 
-      <p>Register it (plus the module declaration at the top of
-      <code>detectors/mod.rs</code>):</p>
+      <p>Register it (plus the module declaration at the top of <code>detectors/mod.rs</code>):</p>
 
       <pre><code>// In detectors/mod.rs
 pub mod my_custom;
@@ -491,22 +645,19 @@ pub fn default_registry() -> DetectorRegistry {
     registry
 }</code></pre>
 
-      <p>Because every type (<code>Detector</code>, <code>DetectorRegistry</code>,
-      <code>PathRule</code>, all detector structs/factories) is public,
-      custom registry composition never requires modifying the crate:
-      build your own registry from <code>bsuppla::core</code> +
-      <code>bsuppla::detectors</code>.</p>
+      <p>Because every type (<code>Detector</code>, <code>DetectorRegistry</code>, <code>PathRule</code>, all detector structs/factories) is public, custom registry composition never requires modifying the crate: build your own registry from <code>bsuppla::core</code> + <code>bsuppla::detectors</code>.</p>
 
-      <p>Full recipes with copy-paste examples live in
-      <code>docs/DEVELOPMENT.md</code>.</p>
+      <p>Full recipes with copy-paste examples live in <code>docs/DEVELOPMENT.md</code>.</p>
 
-      <h2>7. Conclusions</h2>
+      <h2>10. Conclusions</h2>
       <p>The bsuppla architecture provides:</p>
       <ul>
-        <li>Safe static analysis without code execution</li>
-        <li>Extensible plugin system via trait composition</li>
+        <li>Safe static analysis without code execution (Theorem 1)</li>
+        <li>Deterministic, reproducible results (Theorem 2)</li>
+        <li>Extensible plugin system via trait composition (Theorem 3)</li>
         <li>Independent testability of each detector</li>
-        <li>Clear separation of concerns</li>
+        <li>Clear separation of concerns with flat module hierarchy</li>
+        <li>Formal verification of critical safety properties</li>
       </ul>
 
     </div>

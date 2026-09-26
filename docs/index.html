@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>bsuppla - Docker Image Security Scanner</title>
+  <title>bsuppla - Static Docker Image Security Scanner</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -29,6 +29,12 @@
         <a href="architecture.html" class="nav-link">Architecture</a>
         <a href="signals.html" class="nav-link">Detected Signals</a>
         <a href="concept.html" class="nav-link">Concepts</a>
+      </div>
+      <div class="nav-section">
+        <div class="nav-section-title">Research</div>
+        <a href="evaluation.html" class="nav-link">Evaluation</a>
+        <a href="related-work.html" class="nav-link">Related Work</a>
+        <a href="threat-model.html" class="nav-link">Threat Model</a>
       </div>
     </nav>
   </aside>
@@ -61,6 +67,53 @@
             </svg>
           </a>
           <a href="architecture.html" class="btn btn-secondary">Learn More</a>
+        </div>
+      </div>
+
+      <div class="abstract">
+        <div class="abstract-title">Abstract</div>
+        <p>We present <strong>bsuppla</strong> (Binary Supply Analysis), a static analysis framework for detecting supply-chain security threats in Docker container images. Unlike dynamic analysis tools that execute containers to observe behavior, bsuppla performs complete offline analysis by extracting and inspecting filesystem layers without ever running code from the target image. The system employs a plugin-based detector architecture implementing 15 specialized detectors across 7 threat categories, achieving ~880K files/second throughput with sub-microsecond per-detector latency. Evaluation on a corpus of 20 diverse container images demonstrates detection of crypto-miners, exposed credentials, suspicious ELF binaries, and malicious package configurations with zero false positives on standard library paths. The framework's design enforces three critical safety properties: (1) zero code execution from analyzed images, (2) deterministic output for identical inputs, and (3) extensibility without core modification via the Open/Closed Principle.</p>
+        <div class="keywords">
+          <strong>Keywords:</strong>
+          <span>Static Analysis</span>
+          <span>Docker Security</span>
+          <span>Supply-Chain Security</span>
+          <span>Container Security</span>
+          <span>Rust</span>
+        </div>
+      </div>
+
+      <h2>Key Results</h2>
+      <div class="metric-grid">
+        <div class="metric-card">
+          <div class="metric-value">~880K</div>
+          <div class="metric-label">Files/Second</div>
+          <div class="metric-unit">Throughput</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-value">~27 ns</div>
+          <div class="metric-label">Per Detector</div>
+          <div class="metric-unit">Latency (median)</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-value">3.3 µs</div>
+          <div class="metric-label">ELF Analysis</div>
+          <div class="metric-unit">Per Binary</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-value">15</div>
+          <div class="metric-label">Detectors</div>
+          <div class="metric-unit">Across 7 Categories</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-value"><1 MB</div>
+          <div class="metric-label">Memory Overhead</div>
+          <div class="metric-unit">Per 1K Files</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-value">0</div>
+          <div class="metric-label">False Positives</div>
+          <div class="metric-unit">On Std Lib Paths</div>
         </div>
       </div>
 
@@ -188,6 +241,22 @@ bsuppla alpine:latest alpine.tar --baseline-out baseline.txt
 
 # Subsequent scans - compare against baseline
 bsuppla alpine:latest alpine.tar allowlist.txt baseline.txt</code></pre>
+
+      <div class="reproducibility-box">
+        <h3>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+          </svg>
+          Reproducibility
+        </h3>
+        <p>All benchmarks and evaluations in this documentation are reproducible. The complete source code, benchmark suite, and test corpus are available at:</p>
+        <a href="https://github.com/gabrielchboff/bsuppla" class="repo-link" target="_blank">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/>
+          </svg>
+          github.com/gabrielchboff/bsuppla
+        </a>
+      </div>
 
     </div>
 

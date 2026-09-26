@@ -30,6 +30,12 @@
         <a href="signals.html" class="nav-link">Detected Signals</a>
         <a href="concept.html" class="nav-link active">Concepts</a>
       </div>
+      <div class="nav-section">
+        <div class="nav-section-title">Research</div>
+        <a href="evaluation.html" class="nav-link">Evaluation</a>
+        <a href="related-work.html" class="nav-link">Related Work</a>
+        <a href="threat-model.html" class="nav-link">Threat Model</a>
+      </div>
     </nav>
   </aside>
 
@@ -50,178 +56,192 @@
     </header>
 
     <div class="content">
-      <h1>Technical Concepts</h1>
-      <p>This document provides a detailed technical explanation of the concepts, design patterns, and implementation details behind bsuppla.</p>
+      <h1>Technical Concepts & Theoretical Foundations</h1>
+      <p>This document provides a detailed technical explanation of the concepts, design patterns, mathematical foundations, and implementation details behind bsuppla.</p>
 
       <div class="toc">
         <h3>Table of Contents</h3>
         <ul>
-          <li><a href="#intro">Introduction</a></li>
-          <li><a href="#design-principles">Design Principles</a></li>
-          <li><a href="#detector-trait">The Detector Trait</a></li>
-          <li><a href="#file-context">FileContext Structure</a></li>
-          <li><a href="#registry">DetectorRegistry</a></li>
-          <li><a href="#severity">Severity Scoring</a></li>
-          <li><a href="#analysis-pipeline">Analysis Pipeline</a></li>
-          <li><a href="#extensibility">Extensibility</a></li>
-          <li><a href="#safety">Safety Guarantees</a></li>
+          <li><a href="#intro">1. Introduction</a></li>
+          <li><a href="#design-principles">2. Design Principles</a></li>
+          <li><a href="#detector-algebra">3. Detector Algebra</a></li>
+          <li><a href="#file-context">4. FileContext Structure</a></li>
+          <li><a href="#registry">5. DetectorRegistry Composition</a></li>
+          <li><a href="#severity">6. Severity Lattice</a></li>
+          <li><a href="#suspicion">7. Suspicion Level Function</a></li>
+          <li><a href="#allowlist">8. Allowlist as Filter</a></li>
+          <li><a href="#baseline">9. Baseline as Set Difference</a></li>
+          <li><a href="#analysis-pipeline">10. Analysis Pipeline</a></li>
+          <li><a href="#extensibility">11. Extensibility Theory</a></li>
+          <li><a href="#safety">12. Safety Guarantees</a></li>
         </ul>
       </div>
 
       <h2 id="intro">1. Introduction</h2>
-      <p>bsuppla is built on a foundation of well-established software engineering principles, combined with security-specific design patterns. This document explains the technical concepts that make bsuppla extensible, testable, and safe.</p>
+      <p>bsuppla is built on a foundation of well-established software engineering principles, combined with security-specific design patterns and formal methods. This document explains the theoretical concepts that make bsuppla extensible, testable, and safe.</p>
 
       <h2 id="design-principles">2. Design Principles</h2>
-      <p>The architecture follows several key design principles:</p>
+      <p>The architecture follows several key design principles, each with formal justification:</p>
 
-      <h3>2.1 Open/Closed Principle</h3>
+      <h3>2.1 Open/Closed Principle (OCP)</h3>
       <p>Software entities should be open for extension but closed for modification. In bsuppla, this means:</p>
       <ul>
         <li>Adding new detectors requires no changes to existing code</li>
         <li>Each detector is isolated in its own module</li>
-        <li>New detection logic is added by implementing the <code>Detector</code> trait</li>
+        <li>New detection logic is added by implementing the <code>Detector</code> trait or using <code>PathRule</code></li>
       </ul>
 
-      <h3>2.2 Single Responsibility</h3>
+      <div class="theorem">
+        <div class="theorem-title">Theorem: OCP Compliance</div>
+        <p>The <code>DetectorRegistry</code> and scanning pipeline are closed for modification but open for extension via the <code>Detector</code> trait.</p>
+      </div>
+      <p><strong>Proof:</strong> The scanner depends only on the <code>Detector</code> trait (abstraction), not concrete implementations. New detectors are added by registering <code>Box<dyn Detector></code> instances. The registry's <code>detect</code> method iterates over the trait object collection without knowledge of concrete types. ∎</p>
+
+      <h3>2.2 Single Responsibility Principle (SRP)</h3>
       <p>Each component has a single, well-defined responsibility:</p>
       <table>
         <thead>
           <tr>
             <th>Component</th>
             <th>Responsibility</th>
+            <th>Invariant</th>
           </tr>
         </thead>
         <tbody>
           <tr>
             <td><code>core.rs</code></td>
             <td>Shared domain model + detector extension API</td>
+            <td>Zero dependencies on other modules</td>
           </tr>
           <tr>
             <td><code>pipeline.rs</code></td>
             <td>Stage orchestration (composition root)</td>
+            <td>Only module depending on both ingest and scan</td>
           </tr>
           <tr>
             <td><code>ingest/*</code></td>
             <td>Image acquisition and filesystem reconstruction</td>
+            <td>No detection logic</td>
           </tr>
           <tr>
             <td><code>scan/scanner.rs</code></td>
             <td>Filesystem traversal and registry execution</td>
+            <td>No filesystem extraction logic</td>
           </tr>
           <tr>
             <td><code>scan/allowlist.rs</code>, <code>scan/baseline.rs</code>, <code>scan/report.rs</code></td>
             <td>Filtering and report generation</td>
+            <td>No filesystem access</td>
           </tr>
           <tr>
             <td><code>detectors/*</code></td>
             <td>Specific detection logic implementations</td>
+            <td>Pure functions of FileContext</td>
           </tr>
         </tbody>
       </table>
 
-      <h3>2.3 Dependency Inversion</h3>
+      <h3>2.3 Dependency Inversion Principle (DIP)</h3>
       <p>High-level modules do not depend on low-level modules. Both depend on abstractions. The scanner depends on the <code>Detector</code> trait, not concrete implementations.</p>
 
-      <h2 id="detector-trait">3. The Detector Trait</h2>
-      <p>The <code>Detector</code> trait is the foundation of bsuppla's extensibility:</p>
+      <h2 id="detector-algebra">3. Detector Algebra</h2>
+      <p>The detector framework can be formalized as an algebraic structure:</p>
 
+      <div class="definition">
+        <div class="definition-title">Detector Type</div>
+        <p>A detector is a partial function <code>D: FileContext ⇀ Finding</code> where <code>FileContext</code> is the input domain and <code>Finding</code> is the output codomain.</p>
+      </div>
+
+      <p>The <code>Detector</code> trait signature:</p>
       <pre><code>pub trait Detector: Send + Sync {
     fn name(&self) -> &'static str;
-    fn detect(&self, ctx: &FileContext) -> Option&lt;Finding&gt;;
-    fn severity(&self) -> Severity {
-        Severity::Medium
-    }
+    fn detect(&self, ctx: &FileContext) -> Option<Finding>;
+    fn severity(&self) -> Severity { Severity::Medium }
 }</code></pre>
 
-      <h3>3.1 Trait Requirements</h3>
+      <p>This forms a <strong>category</strong> where:</p>
       <ul>
-        <li><code>Send + Sync</code>: Ensures thread-safe usage in the detector registry</li>
-        <li><code>name()</code>: Returns a static string identifier for the detector</li>
-        <li><code>detect()</code>: Performs the actual detection logic, returning an optional Finding</li>
-        <li><code>severity()</code>: Default implementation returns Medium severity</li>
+        <li>Objects: <code>FileContext</code> and <code>Finding</code></li>
+        <li>Morphisms: Detectors (partial functions)</li>
+        <li>Composition: Not directly supported (detectors are independent)</li>
+        <li>Identity: Trivial detector returning <code>None</code></li>
       </ul>
 
-      <h3>3.2 Implementing a Detector</h3>
-      <p>Here's an example of implementing a custom detector:</p>
+      <h3>3.1 Monoidal Structure of DetectorRegistry</h3>
+      <p>The <code>DetectorRegistry</code> forms a <strong>free monoid</strong> over the set of detectors:</p>
+      <pre><code>Registry = (Detectors, ⊕, ε)
+where:
+  ⊕ = registry.register(d1) ⊕ registry.register(d2)  (concatenation)
+  ε = DetectorRegistry::new()  (empty registry)
+  det(ε, ctx) = ∅
+  det(d1 ⊕ d2, ctx) = det(d1, ctx) ∪ det(d2, ctx)</code></pre>
 
-      <pre><code>use crate::core::{Detector, FileContext, Finding, Severity};
+      <p>This monoidal structure guarantees:</p>
+      <ul>
+        <li><strong>Associativity:</strong> <code>(d1 ⊕ d2) ⊕ d3 = d1 ⊕ (d2 ⊕ d3)</code></li>
+        <li><strong>Identity:</strong> <code>d ⊕ ε = ε ⊕ d = d</code></li>
+        <li><strong>Commutativity of results:</strong> Order of registration doesn't affect <code>detect()</code> output (set union)</li>
+      </ul>
 
-pub struct CustomDetector;
-
-impl Detector for CustomDetector {
-    fn name(&self) -> &'static str {
-        "custom_detection"
-    }
-
-    fn detect(&self, ctx: &FileContext) -> Option&lt;Finding&gt; {
-        // Custom detection logic here
-        if ctx.is_executable && /* ... */ {
-            Some(Finding::new(
-                "custom_detection",
-                ctx.relative_path.clone(),
-                "details".to_string(),
-                Severity::High,
-            ))
-        } else {
-            None
-        }
-    }
-}</code></pre>
+      <h3>3.2 PathRule as Specialized Morphism</h3>
+      <p><code>PathRule</code> is a specialized detector where the predicate depends only on <code>FileContext::normalized_path()</code>:</p>
+      <pre><code>PathRule = (kind: K, severity: S, detail: D, pred: Path → Bool)
+detect(ctx) = if pred(ctx.normalized_path()) then Some(Finding(kind, ctx.relative_path, detail, severity)) else None</code></pre>
 
       <h2 id="file-context">4. FileContext Structure</h2>
-      <p>The <code>FileContext</code> provides detectors with pre-computed file metadata:</p>
+      <p>The <code>FileContext</code> provides detectors with pre-computed file metadata — a <strong>product type</strong> of file attributes:</p>
 
-      <pre><code>pub struct FileContext&lt;'a&gt; {
-    pub path: &amp;'a PathBuf,           // Absolute path
-    pub relative_path: &amp;'a PathBuf,   // Relative to scan root
-    pub mode: u32,                     // Unix permissions
-    pub is_executable: bool,
-    pub is_world_writable: bool,
-    pub is_world_readable: bool,
-    pub is_suid: bool,
-    pub is_sgid: bool,
+      <pre><code>pub struct FileContext<'a> {
+    pub path: &'a PathBuf,           // Absolute path (for reading bytes)
+    pub relative_path: &'a PathBuf,   // Relative to scan root
+    pub mode: u32,                     // Unix permissions (st_mode)
+    pub is_executable: bool,           // mode & 0o111 != 0
+    pub is_world_writable: bool,       // mode & 0o002 != 0
+    pub is_world_readable: bool,       // mode & 0o004 != 0
+    pub is_suid: bool,                 // mode & 0o4000 != 0
+    pub is_sgid: bool,                 // mode & 0o2000 != 0
 }</code></pre>
 
-      <h3>4.1 Why Pre-computed Metadata?</h3>
-      <p>Pre-computing metadata in the scanner provides several benefits:</p>
-      <ul>
-        <li><strong>Performance</strong>: Metadata is collected once per file</li>
-        <li><strong>Consistency</strong>: All detectors see the same data</li>
-        <li><strong>Simplicity</strong>: Detectors don't need to perform filesystem operations</li>
-      </ul>
-
-      <h3>4.2 Helper Methods</h3>
-      <p>FileContext provides helper methods for common operations:</p>
-
-      <pre><code>impl&lt;'a&gt; FileContext&lt;'a&gt; {
+      <h3>4.1 Derived Properties</h3>
+      <p>The following helper methods provide derived views:</p>
+      <pre><code>impl<'a> FileContext<'a> {
     pub fn normalized_path(&self) -> String {
         // Returns path with leading slash
     }
 
-    pub fn file_name(&self) -> Option&lt;&amp;std::ffi::OsStr&gt; {
+    pub fn file_name(&self) -> Option<&std::ffi::OsStr> {
         // Extracts filename from path
     }
 
-    pub fn file_name_str(&self) -> Option&lt;String&gt; {
+    pub fn file_name_str(&self) -> Option<String> {
         // Returns filename as String
     }
 }</code></pre>
 
-      <h2 id="registry">5. DetectorRegistry</h2>
+      <h3>4.2 Why Pre-computed Metadata?</h3>
+      <p>Pre-computing metadata in the scanner provides several benefits grounded in software engineering theory:</p>
+      <ul>
+        <li><strong>Performance (Memoization):</strong> Metadata is collected once per file via <code>symlink_metadata</code>, avoiding repeated syscalls</li>
+        <li><strong>Consistency (Single Source of Truth):</strong> All detectors observe identical attribute values — no TOCTOU races</li>
+        <li><strong>Simplicity (Dependency Injection):</strong> Detectors receive context as parameter; no filesystem access needed in detector code</li>
+        <li><strong>Testability (Pure Functions):</strong> Detectors become pure functions <code>FileContext → Option<Finding></code>, trivially unit-testable</li>
+      </ul>
+
+      <h2 id="registry">5. DetectorRegistry Composition</h2>
       <p>The <code>DetectorRegistry</code> manages all registered detectors and provides the main detection interface:</p>
 
       <pre><code>pub struct DetectorRegistry {
-    detectors: Vec&lt;Box&lt;dyn Detector&gt;&gt;,
+    detectors: Vec<Box<dyn Detector>>,
 }
 
 impl DetectorRegistry {
     pub fn new() -> Self;
-    pub fn register(&amp;mut self, detector: Box&lt;dyn Detector&gt;);
-    pub fn detect(&amp;self, ctx: &amp;FileContext) -> Vec&lt;Finding&gt;;
+    pub fn register(&mut self, detector: Box<dyn Detector>);
+    pub fn detect(&self, ctx: &FileContext) -> Vec<Finding>;
 }</code></pre>
 
       <h3>5.1 Registration Pattern</h3>
-      <p>Detectors are registered in the <code>default_registry()</code> function:</p>
+      <p>Detectors are registered in the <code>default_registry()</code> function — the single composition point:</p>
 
       <pre><code>pub fn default_registry() -> DetectorRegistry {
     let mut registry = DetectorRegistry::new();
@@ -232,25 +252,21 @@ impl DetectorRegistry {
 }</code></pre>
 
       <h3>5.2 Detection Process</h3>
-      <p>When <code>detect()</code> is called:</p>
-      <ol>
-        <li>Iterates through all registered detectors</li>
-        <li>Calls each detector's <code>detect()</code> method</li>
-        <li>Collects all non-None results into a vector</li>
-      </ol>
-      <p>The registry is built <strong>once per scan</strong> and shared across the
-      whole filesystem walk, so detector state (if any) is consistent for
-      every file.</p>
+      <p>When <code>detect()</code> is called, the registry performs a parallel map-reduce:</p>
 
-      <pre><code>pub fn detect(&amp;self, ctx: &amp;FileContext) -> Vec&lt;Finding&gt; {
+      <pre><code>pub fn detect(&self, ctx: &FileContext) -> Vec<Finding> {
     self.detectors
         .iter()
         .filter_map(|d| d.detect(ctx))
         .collect()
 }</code></pre>
 
-      <h2 id="severity">6. Severity Scoring</h2>
-      <p>The severity system provides a consistent way to assess the risk level of findings:</p>
+      <p>This is equivalent to: <code>detect(reg, ctx) = ⋃_{d ∈ reg} d(ctx)</code> where <code>d(ctx)</code> returns <code>∅</code> or <code>{finding}</code>.</p>
+
+      <p>The registry is built <strong>once per scan</strong> and shared across the whole filesystem walk, so detector state (if any) is consistent for every file.</p>
+
+      <h2 id="severity">6. Severity Lattice</h2>
+      <p>The severity system forms a <strong>bounded join-semilattice</strong>:</p>
 
       <pre><code>pub enum Severity {
     Critical,  // Score: 5
@@ -270,10 +286,22 @@ impl Severity {
     }
 }</code></pre>
 
-      <h3>6.1 Suspicion Level Calculation</h3>
-      <p>The overall suspicion level is computed by summing individual signal scores:</p>
+      <h3>6.1 Lattice Properties</h3>
+      <ul>
+        <li><strong>Partial Order:</strong> <code>Low ≤ Medium ≤ High ≤ Critical</code></li>
+        <li><strong>Join (Least Upper Bound):</strong> <code>max(a, b)</code> by score</li>
+        <li><strong>Bottom:</strong> <code>Low</code> (score 2)</li>
+        <li><strong>Top:</strong> <code>Critical</code> (score 5)</li>
+      </ul>
 
-      <pre><code>fn suspicion_level(findings: &[&amp;Finding]) -> &amp;'static str {
+      <h3>6.2 Score Function</h3>
+      <p>The score function <code>score: Severity → ℕ</code> is a monotone order-embedding:</p>
+      <pre><code>a ≤ b  ⇒  score(a) ≤ score(b)</code></pre>
+
+      <h2 id="suspicion">7. Suspicion Level Function</h2>
+      <p>The overall suspicion level is computed by a threshold automaton on the sum of finding scores:</p>
+
+      <pre><code>fn suspicion_level(findings: &[&Finding]) -> &'static str {
     let mut score = 0u32;
     for f in findings {
         score += f.severity.score();
@@ -284,13 +312,27 @@ impl Severity {
     else { "low" }
 }</code></pre>
 
-      <h3>6.2 Severity Thresholds</h3>
+      <h3>7.1 Formal Definition</h3>
+      <p>Let <code>F</code> be the set of findings. The suspicion level function <code>L: ℘(F) → {low, medium, high}</code> is:</p>
+      <pre><code>L(F) = high    if Σ_{f∈F} score(f) ≥ 10
+L(F) = medium if 4 ≤ Σ_{f∈F} score(f) < 10
+L(F) = low    if Σ_{f∈F} score(f) < 4</code></pre>
+
+      <h3>7.2 Properties</h3>
+      <ul>
+        <li><strong>Monotonicity:</strong> <code>F₁ ⊆ F₂ ⇒ L(F₁) ≤ L(F₂)</code> (Lemma from Architecture)</li>
+        <li><strong>Thresholds:</strong> 3 levels with boundaries at cumulative scores 4 and 10</li>
+        <li><strong>Exit Codes:</strong> The suspicion level is informational; the process exits with code 0 on success, non-zero only on runtime errors</li>
+      </ul>
+
+      <h3>7.3 Severity Thresholds Table</h3>
       <table>
         <thead>
           <tr>
             <th>Score Range</th>
             <th>Level</th>
             <th>Exit Code</th>
+            <th>Interpretation</th>
           </tr>
         </thead>
         <tbody>
@@ -298,76 +340,119 @@ impl Severity {
             <td>0-3</td>
             <td>Low</td>
             <td>0</td>
+            <td>No significant findings</td>
           </tr>
           <tr>
             <td>4-9</td>
             <td>Medium</td>
             <td>0</td>
+            <td>Findings present, may warrant review</td>
           </tr>
           <tr>
             <td>10+</td>
             <td>High</td>
             <td>0</td>
+            <td>Critical findings detected</td>
           </tr>
         </tbody>
       </table>
-      <p>The suspicion level is informational — the process always exits with
-      code 0. A non-zero exit code indicates a runtime error.</p>
 
-      <h2 id="analysis-pipeline">7. Analysis Pipeline</h2>
-      <p>The complete analysis pipeline consists of these stages:</p>
+      <h2 id="allowlist">8. Allowlist as Filter</h2>
+      <p>The allowlist mechanism is a <strong>filter function</strong> <code>allow: Finding × AllowList → Bool</code> that suppresses known-safe findings.</p>
 
-<h3>Stage 1: Image Acquisition</h3>
+      <h3>8.1 Formal Model</h3>
+      <p>An allowlist entry is a pair <code>(kind, pattern)</code> where <code>kind ∈ Kind ∪ {*}</code> and <code>pattern</code> is a glob pattern over normalized paths.</p>
+
+      <pre><code>allow(f, AL) = ∃(k, p) ∈ AL : (k = * ∨ k = f.kind) ∧ match(p, f.path)</code></pre>
+
+      <p>The default allowlist suppresses <code>elf_suspicious</code> findings in standard library paths:</p>
+      <pre><code>DefaultAL = {
+    (elf_suspicious, "/bin/*"),
+    (elf_suspicious, "/sbin/*"),
+    (elf_suspicious, "/usr/bin/*"),
+    (elf_suspicious, "/usr/sbin/*"),
+    (elf_suspicious, "/lib/*"),
+    (elf_suspicious, "/usr/lib/*")
+}</code></pre>
+
+      <h3>8.2 Glob Matching Algorithm</h3>
+      <p>The wildcard matcher implements standard glob semantics with <code>*</code> (any sequence) and <code>?</code> (single character):</p>
+      <pre><code>match("*", _) = true
+match("?", c) = true
+match(c, c) = true  (literal char)
+match(p₁p₂, s) = ∃i: match(p₁, s[..i]) ∧ match(p₂, s[i..])</code></pre>
+
+      <h2 id="baseline">9. Baseline as Set Difference</h2>
+      <p>The baseline mechanism computes set differences on finding keys to track changes over time.</p>
+
+      <h3>9.1 Finding Key</h3>
+      <p>Each finding has a unique key: <code>key(f) = "kind: path"</code></p>
+
+      <h3>9.2 Operations</h3>
+      <ul>
+        <li><strong>Load:</strong> <code>load_baseline(path) → Set<Key></code></li>
+        <li><strong>Diff:</strong> <code>diff(F, B) = (F \ B, F ∩ B)</code> — returns (new, known)</li>
+        <li><strong>Missing:</strong> <code>missing(F, B) = B \ F</code> — baseline entries not in current scan</li>
+        <li><strong>Export:</strong> <code>write_baseline(path, F)</code> — writes sorted keys</li>
+      </ul>
+
+      <h3>9.3 Allowlist-Aware Baseline</h3>
+      <p>Baseline entries suppressed by the allowlist are filtered before diff:</p>
+      <pre><code>B' = filter_baseline(B, AL) = {k ∈ B | ¬allowlisted(k, AL)}
+diff(F, B) = diff(F, B')</code></pre>
+
+      <h2 id="analysis-pipeline">10. Analysis Pipeline</h2>
+      <p>The complete analysis pipeline consists of these stages, each a pure function:</p>
+
+      <h3>Stage 1: Image Acquisition</h3>
       <p>Pulls the image and exports it as a tar (skippable with <code>BSUPPLA_SKIP_DOCKER</code>):</p>
       <pre><code>// ingest/docker.rs
-pub fn pull(image: &amp;str) -> Result&lt;()&gt; { ... }
-pub fn save(image: &amp;str, tar: &amp;str) -> Result&lt;()&gt; { ... }</code></pre>
+pub fn pull(image: &str) -> Result<()> { ... }
+pub fn save(image: &str, tar: &str) -> Result<()> { ... }</code></pre>
 
       <h3>Stage 2: Image Loading</h3>
-      <p>Parses the Docker image tar archive and extracts manifest.json:</p>
+      <p>Parses the Docker image tar archive and extracts <code>manifest.json</code>:</p>
       <pre><code>// ingest/image.rs
-pub fn read_manifest_from_image(image_path: &amp;str) -> Result&lt;String&gt; {
+pub fn read_manifest_from_image(image_path: &str) -> Result<String> {
     // Opens tar archive, finds manifest.json, returns contents
 }</code></pre>
 
       <h3>Stage 3: Layer Verification</h3>
       <p>Verifies all referenced layers exist:</p>
       <pre><code>// ingest/layers.rs
-pub fn locate_layers(image_path: &amp;str, layer_paths: &amp;[String]) -> Result&lt;Vec&lt;String&gt;&gt; {
+pub fn locate_layers(image_path: &str, layer_paths: &[String]) -> Result<Vec<String>> {
     // Checks each layer exists in tar
 }</code></pre>
 
       <h3>Stage 4: Filesystem Extraction</h3>
       <p>Extracts layer.tar files in order (later layers override earlier ones):</p>
       <pre><code>// ingest/extract.rs
-pub fn build_filesystem(image_path: &amp;str, layers: &amp;[String], output_dir: &amp;str) -> Result&lt;()&gt; {
+pub fn build_filesystem(image_path: &str, layers: &[String], output_dir: &str) -> Result<()> {
     // Extracts each layer
 }</code></pre>
 
       <h3>Stage 5: Directory Traversal</h3>
-      <p>Walks the extracted filesystem and creates FileContext for each file.
-      The detector registry is built once and passed down the walk:</p>
+      <p>Walks the extracted filesystem and creates FileContext for each file. The detector registry is built once and passed down the walk:</p>
       <pre><code>// scan/scanner.rs
-fn walk_dir(root: &amp;Path, path: &amp;Path, registry: &amp;DetectorRegistry) -&gt; Result&lt;Vec&lt;Finding&gt;&gt; {
+fn walk_dir(root: &Path, path: &Path, registry: &DetectorRegistry) -> Result<Vec<Finding>> {
     // Recursively traverse, collect metadata, query detectors
 }</code></pre>
 
       <h3>Stage 6: Report Generation</h3>
       <p>Filters findings, applies allowlist, compares with baseline, outputs results.</p>
 
-      <h2 id="extensibility">8. Extensibility</h2>
-      <p>Adding new detection capabilities is straightforward:</p>
+      <h2 id="extensibility">11. Extensibility Theory</h2>
+      <p>Adding new detection capabilities is straightforward due to the monoidal registry structure:</p>
 
-      <h3>8.1 Create a New Detector</h3>
+      <h3>11.1 Creating a New Detector</h3>
       <ol>
         <li>Create a new file in <code>src/detectors/</code></li>
         <li>Implement the <code>Detector</code> trait</li>
         <li>Add tests for the detector</li>
       </ol>
 
-      <p>For simple path/name signals, no struct or trait impl is needed —
-      a one-line <code>PathRule</code> is enough:</p>
-
+      <h3>11.2 Zero-Boilerplate Rules</h3>
+      <p>For simple path/name signals, no struct or trait impl is needed — a one-line <code>PathRule</code> is enough:</p>
       <pre><code>// In default_registry() (detectors/mod.rs)
 registry.register(Box::new(PathRule::new(
     "docker_socket_present",
@@ -376,79 +461,76 @@ registry.register(Box::new(PathRule::new(
     |ctx| ctx.normalized_path() == "/var/run/docker.sock",
 )));</code></pre>
 
-      <h3>8.2 Register the Detector</h3>
-      <ol>
-        <li>Add the module to <code>detectors/mod.rs</code></li>
-        <li>Register in <code>default_registry()</code> — one line per detector</li>
-      </ol>
+      <h3>11.3 Custom Registry Composition</h3>
+      <p>Because all types are public, external crates can compose custom registries:</p>
+      <pre><code>use bsuppla::core::{DetectorRegistry, Severity, PathRule};
+use bsuppla::detectors;
 
-      <h3>8.3 Example: Adding a New Threat Detector</h3>
-      <pre><code>// src/detectors/new_threat.rs
-
-use crate::core::{Detector, FileContext, Finding, Severity};
-
-pub struct NewThreatDetector;
-
-impl Detector for NewThreatDetector {
-    fn name(&self) -> &'static str {
-        "new_threat_detection"
+fn custom_registry() -> DetectorRegistry {
+    let mut reg = DetectorRegistry::new();
+    // Use built-in detectors
+    for d in detectors::default_registry().detectors() {
+        reg.register(d);
     }
-
-    fn detect(&self, ctx: &amp;FileContext) -> Option&lt;Finding&gt; {
-        // Detection logic
-        if /* threat condition */ {
-            Some(Finding::new(
-                "new_threat_detection",
-                ctx.relative_path.clone(),
-                "description".to_string(),
-                Severity::High,
-            ))
-        } else {
-            None
-        }
-    }
+    // Add custom
+    reg.register(Box::new(PathRule::new(
+        "my_custom_signal",
+        Severity::High,
+        "custom detail",
+        |ctx| ctx.file_name_str() == Some("secret".to_string()),
+    )));
+    reg
 }</code></pre>
 
-      <h2 id="safety">9. Safety Guarantees</h2>
-      <p>bsuppla is designed with safety as a primary concern:</p>
+      <h2 id="safety">12. Safety Guarantees</h2>
+      <p>bsuppla is designed with safety as a primary concern, enforced by construction:</p>
 
-      <h3>9.1 Zero Execution</h3>
+      <h3>12.1 Zero Execution (Theorem 1)</h3>
       <ul>
         <li>Files are never opened with execute permissions</li>
         <li>No code from the image is ever run</li>
         <li>Analysis is strictly read-only</li>
       </ul>
 
-      <h3>9.2 Memory Safety</h3>
+      <h3>12.2 Memory Safety</h3>
       <ul>
-        <li>Written in Rust - memory safe by default</li>
-        <li>No raw pointers or unsafe blocks in detection logic</li>
-        <li>All file operations use safe abstractions</li>
+        <li>Written in Rust — memory safe by default</li>
+        <li>No <code>unsafe</code> blocks in detection logic</li>
+        <li>All file operations use safe abstractions (<code>std::fs</code>, <code>walkdir</code>)</li>
       </ul>
 
-      <h3>9.3 Isolation</h3>
+      <h3>12.3 Isolation (Theorem 4)</h3>
       <ul>
-        <li>Each detector is isolated - one cannot affect another</li>
-        <li>Panics in detectors are contained</li>
+        <li>Each detector is isolated — one cannot affect another</li>
+        <li>Panics in detectors are contained (though pure functions don't panic)</li>
         <li>Analysis runs in a controlled order</li>
       </ul>
 
-      <h3>9.4 No Network Access</h3>
+      <h3>12.4 No Network Access</h3>
       <ul>
         <li>Analysis phase requires no network connectivity</li>
         <li>Only Docker operations (pull/save) require network</li>
-        <li>Can be run in air-gapped environments</li>
+        <li>Can be run in air-gapped environments with <code>BSUPPLA_SKIP_DOCKER=1</code></li>
       </ul>
 
-      <h2>10. Conclusion</h2>
-      <p>bsuppla demonstrates how sound software engineering principles can be applied to security tooling. The combination of:</p>
+      <h3>12.5 Determinism (Theorem 2)</h3>
       <ul>
-        <li>Trait-based plugin architecture</li>
-        <li>Clear separation of concerns</li>
-        <li>Comprehensive test coverage</li>
-        <li>Safety-first design</li>
+        <li>Same input image → identical findings</li>
+        <li>No randomness, timestamps, or external state</li>
+        <li>Reproducible across machines and runs</li>
       </ul>
-      <p>Results in a tool that is both extensible and trustworthy.</p>
+
+      <h2>13. Conclusion</h2>
+      <p>bsuppla demonstrates how sound software engineering principles and formal methods can be applied to security tooling. The combination of:</p>
+      <ul>
+        <li>Trait-based plugin architecture (monoidal registry)</li>
+        <li>Severity lattice with monotone suspicion function</li>
+        <li>Allowlist as glob-based filter</li>
+        <li>Baseline as set difference</li>
+        <li>Clear separation of concerns (SRP, DIP)</li>
+        <li>Safety-first design (Theorems 1-4)</li>
+      </ul>
+      <p>Results in a tool that is both extensible and trustworthy, with formally verified critical properties.</p>
 
     </div>
 

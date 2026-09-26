@@ -28,6 +28,13 @@
         <div class="nav-section-title">Reference</div>
         <a href="architecture.html" class="nav-link">Architecture</a>
         <a href="signals.html" class="nav-link active">Detected Signals</a>
+        <a href="concept.html" class="nav-link">Concepts</a>
+      </div>
+      <div class="nav-section">
+        <div class="nav-section-title">Research</div>
+        <a href="evaluation.html" class="nav-link">Evaluation</a>
+        <a href="related-work.html" class="nav-link">Related Work</a>
+        <a href="threat-model.html" class="nav-link">Threat Model</a>
       </div>
     </nav>
   </aside>
@@ -49,108 +56,340 @@
     </header>
 
     <div class="content">
-      <h1>Signal Taxonomy</h1>
-      <p>This document provides a comprehensive taxonomy of security signals detected by the bsuppla framework.</p>
+      <h1>Signal Taxonomy & Detection Efficacy</h1>
+      <p>This document provides a comprehensive taxonomy of security signals detected by the bsuppla framework, including performance benchmarks and detection efficacy metrics.</p>
 
       <div class="toc">
         <h3>Table of Contents</h3>
         <ul>
-          <li><a href="#overview">Overview</a></li>
-          <li><a href="#elf">ELF Binary Signals</a></li>
-          <li><a href="#permissions">Permission Signals</a></li>
-          <li><a href="#credentials">Credential Signals</a></li>
-          <li><a href="#tools">Tool Signals</a></li>
-          <li><a href="#persistence">Persistence Signals</a></li>
-          <li><a href="#supply-chain">Supply-Chain Signals</a></li>
-          <li><a href="#severity">Severity Classification</a></li>
+          <li><a href="#overview">1. Overview</a></li>
+          <li><a href="#performance">2. Performance Benchmarks</a></li>
+          <li><a href="#elf">3. ELF Binary Signals</a></li>
+          <li><a href="#permissions">4. Permission Signals</a></li>
+          <li><a href="#credentials">5. Credential Signals</a></li>
+          <li><a href="#tools">6. Tool Signals</a></li>
+          <li><a href="#persistence">7. Persistence Signals</a></li>
+          <li><a href="#supply-chain">8. Supply-Chain Signals</a></li>
+          <li><a href="#severity">9. Severity Classification</a></li>
+          <li><a href="#mitre">10. MITRE ATT&CK Coverage</a></li>
         </ul>
       </div>
 
       <h2 id="overview">1. Overview</h2>
-      <p>The bsuppla framework detects security-relevant artifacts through a multi-category signal taxonomy. Each signal represents a specific type of finding with associated risk characteristics.</p>
+      <p>The bsuppla framework detects security-relevant artifacts through a multi-category signal taxonomy. Each signal represents a specific type of finding with associated risk characteristics. The detector registry contains <strong>15 detectors</strong> across <strong>7 threat categories</strong>, achieving <strong>~880K files/second</strong> aggregate throughput.</p>
 
-      <h2 id="elf">2. ELF Binary Signals</h2>
+      <h2 id="performance">2. Performance Benchmarks</h2>
+      <p>All benchmarks run on Intel/AMD x86_64, Rust 1.95, release profile. Times are median of 100 samples.</p>
+
+      <h3>2.1 Per-Detector Latency</h3>
+      <table class="benchmark-table">
+        <thead>
+          <tr>
+            <th>Detector</th>
+            <th>Category</th>
+            <th>Median Latency</th>
+            <th>Throughput</th>
+            <th>Complexity</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>SuidSgidDetector</td>
+            <td>Permissions</td>
+            <td class="number">50.6 ns</td>
+            <td class="number">19.8 M/s</td>
+            <td>O(1)</td>
+          </tr>
+          <tr>
+            <td>WorldWritableDetector</td>
+            <td>Permissions</td>
+            <td class="number">5.3 ns</td>
+            <td class="number">188 M/s</td>
+            <td>O(1)</td>
+          </tr>
+          <tr>
+            <td>ExecutableInWritableDirDetector</td>
+            <td>Permissions</td>
+            <td class="number">23.4 ns</td>
+            <td class="number">42.7 M/s</td>
+            <td>O(1)</td>
+          </tr>
+          <tr>
+            <td>HiddenExecutableDetector</td>
+            <td>Permissions</td>
+            <td class="number">30.5 ns</td>
+            <td class="number">32.7 M/s</td>
+            <td>O(1)</td>
+          </tr>
+          <tr>
+            <td>InsecureShadowDetector</td>
+            <td>Permissions</td>
+            <td class="number">23.3 ns</td>
+            <td class="number">42.9 M/s</td>
+            <td>O(1)</td>
+          </tr>
+          <tr>
+            <td>ElfAnalyzerDetector</td>
+            <td>ELF Analysis</td>
+            <td class="number">3.38 µs</td>
+            <td class="number">296 K/s</td>
+            <td>O(header)</td>
+          </tr>
+          <tr>
+            <td>AuthorizedKeysRule</td>
+            <td>Credentials</td>
+            <td class="number">57.7 ns</td>
+            <td class="number">17.3 M/s</td>
+            <td>O(1)</td>
+          </tr>
+          <tr>
+            <td>PrivateKeyDetector</td>
+            <td>Credentials</td>
+            <td class="number">100.6 ns</td>
+            <td class="number">9.9 M/s</td>
+            <td>O(1)</td>
+          </tr>
+          <tr>
+            <td>CredentialFileDetector</td>
+            <td>Credentials</td>
+            <td class="number">72.8 ns</td>
+            <td class="number">13.7 M/s</td>
+            <td>O(1)</td>
+          </tr>
+          <tr>
+            <td>PackageManagerConfigDetector</td>
+            <td>Pkg Managers</td>
+            <td class="number">23.6 ns</td>
+            <td class="number">42.4 M/s</td>
+            <td>O(1)*</td>
+          </tr>
+          <tr>
+            <td>LockfileDetector</td>
+            <td>Pkg Managers</td>
+            <td class="number">31.6 ns</td>
+            <td class="number">31.7 M/s</td>
+            <td>O(1)*</td>
+          </tr>
+          <tr>
+            <td>ApkRepositoryDetector</td>
+            <td>Pkg Managers</td>
+            <td class="number">21.5 ns</td>
+            <td class="number">46.5 M/s</td>
+            <td>O(1)*</td>
+          </tr>
+          <tr>
+            <td>ApkKeyDetector</td>
+            <td>Pkg Managers</td>
+            <td class="number">22.8 ns</td>
+            <td class="number">43.9 M/s</td>
+            <td>O(1)</td>
+          </tr>
+          <tr>
+            <td>RiskyToolDetector</td>
+            <td>Risky Tools</td>
+            <td class="number">54.4 ns</td>
+            <td class="number">18.4 M/s</td>
+            <td>O(1)</td>
+          </tr>
+          <tr>
+            <td>CryptoMinerDetector</td>
+            <td>Risky Tools</td>
+            <td class="number">56.6 ns</td>
+            <td class="number">17.7 M/s</td>
+            <td>O(1)</td>
+          </tr>
+          <tr>
+            <td>StartupScriptRule</td>
+            <td>Risky Tools</td>
+            <td class="number">56.2 ns</td>
+            <td class="number">17.8 M/s</td>
+            <td>O(1)</td>
+          </tr>
+        </tbody>
+      </table>
+      <p><small>* Content-reading detectors (PackageManagerConfig, Lockfile, ApkRepository) only read files matching specific paths; the fast path returns early for non-matching files.</small></p>
+
+      <h3>2.2 Aggregate Throughput</h3>
+      <table class="benchmark-table">
+        <thead>
+          <tr>
+            <th>Files</th>
+            <th>Total Time</th>
+            <th>Throughput</th>
+            <th>Findings (clean FS)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="number">100</td>
+            <td class="number">111.6 µs</td>
+            <td class="number">896 K/s</td>
+            <td class="number">0</td>
+          </tr>
+          <tr>
+            <td class="number">1,000</td>
+            <td class="number">1.12 ms</td>
+            <td class="number">889 K/s</td>
+            <td class="number">0</td>
+          </tr>
+          <tr>
+            <td class="number">10,000</td>
+            <td class="number">12.8 ms</td>
+            <td class="number">781 K/s</td>
+            <td class="number">0</td>
+          </tr>
+          <tr>
+            <td class="number">5,000 (with walk)</td>
+            <td class="number">22.6 ms</td>
+            <td class="number">222 K/s</td>
+            <td class="number">0</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>2.3 Core Operations</h3>
+      <table class="benchmark-table">
+        <thead>
+          <tr>
+            <th>Operation</th>
+            <th>Time</th>
+            <th>Notes</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Finding creation</td>
+            <td class="number">26.9 ns</td>
+            <td>Allocation + struct init</td>
+          </tr>
+          <tr>
+            <td>Finding key generation</td>
+            <td class="number">122 ns</td>
+            <td>String formatting</td>
+          </tr>
+          <tr>
+            <td>Allowlist filter (1000 findings)</td>
+            <td class="number">~15 µs</td>
+            <td>6 default entries + glob match</td>
+          </tr>
+          <tr>
+            <td>Baseline load (1000 entries)</td>
+            <td class="number">~45 µs</td>
+            <td>HashSet construction</td>
+          </tr>
+          <tr>
+            <td>Baseline diff (1000 findings)</td>
+            <td class="number">~8 µs</td>
+            <td>HashSet lookups</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2 id="elf">3. ELF Binary Signals</h2>
       <p>Analysis of ELF (Executable and Linkable Format) binaries provides insight into binary characteristics that may indicate obfuscation or compromise.</p>
 
-      <table>
+      <table class="benchmark-table">
         <thead>
           <tr>
             <th>Signal</th>
             <th>Description</th>
             <th>Analysis Method</th>
+            <th>Severity</th>
+            <th>Latency</th>
           </tr>
         </thead>
         <tbody>
           <tr>
             <td><code>elf_suspicious</code></td>
             <td>ELF binary with stripped symbols, static linking, or suspicious sections (UPX, packer)</td>
-            <td>ELF header/section parsing</td>
+            <td>ELF header/section parsing (goblin)</td>
+            <td><span class="severity-medium">Medium</span></td>
+            <td class="number">3.38 µs</td>
           </tr>
           <tr>
             <td><code>elf_in_unusual_location</code></td>
             <td>Executable located outside standard paths (/bin, /usr/bin, /lib)</td>
             <td>Path prefix matching</td>
+            <td><span class="severity-low">Low</span></td>
+            <td class="number">3.38 µs</td>
           </tr>
         </tbody>
       </table>
 
-      <h3>2.1 Detection Criteria</h3>
+      <h3>3.1 Detection Criteria</h3>
       <ul>
-        <li><strong>Stripped Binary</strong>: Missing .symtab or .strtab sections</li>
-        <li><strong>Static Binary</strong>: No PT_INTERP or PT_DYNAMIC program headers</li>
-        <li><strong>Packed Binary</strong>: Section names containing "upx", "packer", "packed"</li>
-        <li><strong>Unusual Location</strong>: Path does not start with /bin, /sbin, /usr/bin, /usr/sbin, /lib, /usr/lib</li>
+        <li><strong>Stripped Binary:</strong> Missing <code>.symtab</code> or <code>.strtab</code> sections</li>
+        <li><strong>Static Binary:</strong> No <code>PT_INTERP</code> or <code>PT_DYNAMIC</code> program headers</li>
+        <li><strong>Packed Binary:</strong> Section names containing "upx", "packer", "packed"</li>
+        <li><strong>Unusual Location:</strong> Path does not start with /bin, /sbin, /usr/bin, /usr/sbin, /lib, /usr/lib, /usr/local/bin, /usr/local/sbin</li>
       </ul>
 
-      <h2 id="permissions">3. Permission Signals</h2>
-      <p>Unix permission analysis identifies potentially dangerous file access configurations.</p>
+      <h3>3.2 Benchmark Details</h3>
+      <p>The ELF detector reads the first 5 MiB of each executable file to parse headers. On a clean filesystem with standard binaries, it correctly suppresses findings via the default allowlist. The 3.38 µs latency includes file open, read, and goblin parsing.</p>
 
-      <table>
+      <h2 id="permissions">4. Permission Signals</h2>
+      <p>Unix permission analysis identifies potentially dangerous file access configurations. These detectors are the fastest (~5-50 ns) as they operate purely on <code>st_mode</code> from <code>symlink_metadata</code>.</p>
+
+      <table class="benchmark-table">
         <thead>
           <tr>
             <th>Signal</th>
             <th>Description</th>
             <th>Threshold</th>
+            <th>Severity</th>
+            <th>Latency</th>
           </tr>
         </thead>
         <tbody>
           <tr>
             <td><code>suid_or_sgid_executable</code></td>
             <td>Executable with SUID (4000) or SGID (2000) bit set</td>
-            <td>mode &amp; 0o6000 != 0</td>
+            <td>mode & 0o6000 != 0</td>
+            <td><span class="severity-high">High</span></td>
+            <td class="number">50.6 ns</td>
           </tr>
           <tr>
             <td><code>world_writable_executable</code></td>
             <td>Executable that is world-writable</td>
-            <td>mode &amp; 0o002 != 0</td>
+            <td>mode & 0o002 != 0</td>
+            <td><span class="severity-high">High</span></td>
+            <td class="number">5.3 ns</td>
           </tr>
           <tr>
             <td><code>executable_in_writable_dir</code></td>
             <td>Executable located in /tmp, /var/tmp, /dev/shm, /run, /var/run</td>
             <td>Path prefix matching</td>
+            <td><span class="severity-medium">Medium</span></td>
+            <td class="number">23.4 ns</td>
           </tr>
           <tr>
             <td><code>hidden_executable</code></td>
             <td>Executable with filename starting with '.'</td>
-            <td>Filename starts with '.'</td>
+            <td>Filename starts with '.' </td>
+            <td><span class="severity-low">Low</span></td>
+            <td class="number">30.5 ns</td>
           </tr>
           <tr>
             <td><code>insecure_shadow_permissions</code></td>
             <td>/etc/shadow with world-readable or writable permissions</td>
             <td>Path + permission check</td>
+            <td><span class="severity-high">High</span></td>
+            <td class="number">23.3 ns</td>
           </tr>
         </tbody>
       </table>
 
-      <h2 id="credentials">4. Credential Signals</h2>
+      <h2 id="credentials">5. Credential Signals</h2>
       <p>Detection of exposed sensitive data including cryptographic keys and authentication artifacts.</p>
 
-      <table>
+      <table class="benchmark-table">
         <thead>
           <tr>
             <th>Signal</th>
             <th>Description</th>
             <th>Detection Method</th>
+            <th>Severity</th>
+            <th>Latency</th>
           </tr>
         </thead>
         <tbody>
@@ -158,29 +397,37 @@
             <td><code>private_key_candidate</code></td>
             <td>SSH private key files: id_rsa, id_ed25519, id_dsa, id_ecdsa, *.pem in ~/.ssh/</td>
             <td>Path pattern + filename matching</td>
+            <td><span class="severity-critical">Critical</span></td>
+            <td class="number">100.6 ns</td>
           </tr>
           <tr>
             <td><code>authorized_keys_present</code></td>
             <td>SSH authorized_keys file at ~/.ssh/authorized_keys</td>
             <td>Exact path match</td>
+            <td><span class="severity-medium">Medium</span></td>
+            <td class="number">57.7 ns</td>
           </tr>
           <tr>
             <td><code>credential_file</code></td>
             <td>Configuration files containing credentials: .env, .npmrc, .pypirc, .netrc, .aws/, .kube/config, .docker/config.json</td>
             <td>Filename + path combination</td>
+            <td><span class="severity-critical">Critical</span></td>
+            <td class="number">72.8 ns</td>
           </tr>
         </tbody>
       </table>
 
-      <h2 id="tools">5. Tool Signals</h2>
+      <h2 id="tools">6. Tool Signals</h2>
       <p>Identification of tools with dual-use potential or known malicious associations.</p>
 
-      <table>
+      <table class="benchmark-table">
         <thead>
           <tr>
             <th>Signal</th>
             <th>Known Indicators</th>
             <th>Risk Category</th>
+            <th>Severity</th>
+            <th>Latency</th>
           </tr>
         </thead>
         <tbody>
@@ -188,42 +435,52 @@
             <td><code>risky_tool_present</code></td>
             <td>curl, wget, nc, ncat, netcat, socat, ssh, scp, sftp, strace, tcpdump</td>
             <td>Dual-use</td>
+            <td><span class="severity-low">Low</span></td>
+            <td class="number">54.4 ns</td>
           </tr>
           <tr>
             <td><code>crypto_miner_candidate</code></td>
             <td>xmrig, xmr-stak, minerd, cgminer, bfgminer, kawpowminer, cryptonight</td>
             <td>Cryptojacking</td>
+            <td><span class="severity-critical">Critical</span></td>
+            <td class="number">56.6 ns</td>
           </tr>
         </tbody>
       </table>
 
-      <h2 id="persistence">6. Persistence Signals</h2>
+      <h2 id="persistence">7. Persistence Signals</h2>
       <p>Detection of mechanisms that enable persistent execution across reboots or container restarts.</p>
 
-      <table>
+      <table class="benchmark-table">
         <thead>
           <tr>
             <th>Signal</th>
             <th>Path Patterns</th>
+            <th>Severity</th>
+            <th>Latency</th>
           </tr>
         </thead>
         <tbody>
           <tr>
             <td><code>startup_script_present</code></td>
             <td>/etc/init.d/*, /etc/rc*, /etc/cron*, /var/spool/cron/*, /etc/crontab</td>
+            <td><span class="severity-low">Low</span></td>
+            <td class="number">56.2 ns</td>
           </tr>
         </tbody>
       </table>
 
-      <h2 id="supply-chain">7. Supply-Chain Signals</h2>
+      <h2 id="supply-chain">8. Supply-Chain Signals</h2>
       <p>Analysis of package manager configurations that may indicate compromised or malicious package sources.</p>
 
-      <table>
+      <table class="benchmark-table">
         <thead>
           <tr>
             <th>Signal</th>
             <th>Configuration Files</th>
             <th>Anomaly Detection</th>
+            <th>Severity</th>
+            <th>Latency (fast path)</th>
           </tr>
         </thead>
         <tbody>
@@ -231,34 +488,43 @@
             <td><code>package_manager_config_suspicious</code></td>
             <td>/etc/npmrc, ~/.npmrc, /etc/pip.conf, ~/.pip/pip.conf, /etc/gemrc, ~/.gemrc</td>
             <td>Non-standard registry URLs</td>
+            <td><span class="severity-high">High</span></td>
+            <td class="number">23.6 ns</td>
           </tr>
           <tr>
             <td><code>lockfile_suspicious_source</code></td>
             <td>package-lock.json, yarn.lock, Pipfile.lock, poetry.lock, Gemfile.lock</td>
             <td>git+ or http:// sources</td>
+            <td><span class="severity-medium">Medium</span></td>
+            <td class="number">31.6 ns</td>
           </tr>
           <tr>
             <td><code>apk_repository_suspicious</code></td>
             <td>/etc/apk/repositories</td>
             <td>Non-alpine repositories, file:// URLs</td>
+            <td><span class="severity-high">High</span></td>
+            <td class="number">21.5 ns</td>
           </tr>
           <tr>
             <td><code>apk_key_unusual</code></td>
             <td>/etc/apk/keys/*</td>
             <td>Non-.rsa.pub key filenames</td>
+            <td><span class="severity-high">High</span></td>
+            <td class="number">22.8 ns</td>
           </tr>
         </tbody>
       </table>
 
-      <h2 id="severity">8. Severity Classification</h2>
-      <p>Each signal is assigned a severity level based on potential impact and exploitability.</p>
+      <h2 id="severity">9. Severity Classification</h2>
+      <p>Each signal is assigned a severity level based on potential impact and exploitability. The scoring system forms a bounded join-semilattice (see <a href="concept.html#severity">Concepts</a>).</p>
 
-      <table>
+      <table class="benchmark-table">
         <thead>
           <tr>
             <th>Level</th>
             <th>Score</th>
             <th>Signals</th>
+            <th>Count</th>
           </tr>
         </thead>
         <tbody>
@@ -266,26 +532,30 @@
             <td><span class="severity-critical">Critical</span></td>
             <td>5</td>
             <td>private_key_candidate, credential_file, crypto_miner_candidate</td>
+            <td class="center">3</td>
           </tr>
           <tr>
             <td><span class="severity-high">High</span></td>
             <td>4</td>
-            <td>suid_or_sgid_executable, world_writable_executable, insecure_shadow_permissions</td>
+            <td>suid_or_sgid_executable, world_writable_executable, insecure_shadow_permissions, package_manager_config_suspicious, apk_repository_suspicious, apk_key_unusual</td>
+            <td class="center">6</td>
           </tr>
           <tr>
             <td><span class="severity-medium">Medium</span></td>
             <td>3</td>
-            <td>package_manager_config_suspicious, apk_repository_suspicious, apk_key_unusual</td>
+            <td>elf_suspicious, authorized_keys_present, lockfile_suspicious_source</td>
+            <td class="center">3</td>
           </tr>
           <tr>
             <td><span class="severity-low">Low</span></td>
             <td>2</td>
-            <td>elf_suspicious, elf_in_unusual_location, executable_in_writable_dir, startup_script_present</td>
+            <td>elf_in_unusual_location, executable_in_writable_dir, hidden_executable, risky_tool_present, startup_script_present</td>
+            <td class="center">5</td>
           </tr>
         </tbody>
       </table>
 
-      <h3>8.1 Suspicion Level Calculation</h3>
+      <h3>9.1 Suspicion Level Calculation</h3>
       <p>The overall suspicion level is computed by summing individual signal scores:</p>
       
       <pre><code>total_score = Σ signal_score
@@ -293,6 +563,161 @@ suspicion_level =
   if total_score >= 10: "high"
   else if total_score >= 4: "medium"
   else: "low"</code></pre>
+
+      <h3>9.2 Example Scoring</h3>
+      <table class="comparison-table">
+        <thead>
+          <tr>
+            <th>Findings</th>
+            <th>Scores</th>
+            <th>Total</th>
+            <th>Level</th>
+          </tr>
+        </tbody>
+        <tbody>
+          <tr>
+            <td>1× Low</td>
+            <td>2</td>
+            <td class="center">2</td>
+            <td class="center"><span class="severity-low">low</span></td>
+          </tr>
+          <tr>
+            <td>1× Medium</td>
+            <td>3</td>
+            <td class="center">3</td>
+            <td class="center"><span class="severity-low">low</span></td>
+          </tr>
+          <tr>
+            <td>1× Medium + 1× Low</td>
+            <td>3 + 2</td>
+            <td class="center">5</td>
+            <td class="center"><span class="severity-medium">medium</span></td>
+          </tr>
+          <tr>
+            <td>1× High</td>
+            <td>4</td>
+            <td class="center">4</td>
+            <td class="center"><span class="severity-medium">medium</span></td>
+          </tr>
+          <tr>
+            <td>1× Critical</td>
+            <td>5</td>
+            <td class="center">5</td>
+            <td class="center"><span class="severity-medium">medium</span></td>
+          </tr>
+          <tr>
+            <td>2× High</td>
+            <td>4 + 4</td>
+            <td class="center">8</td>
+            <td class="center"><span class="severity-medium">medium</span></td>
+          </tr>
+          <tr>
+            <td>2× Critical</td>
+            <td>5 + 5</td>
+            <td class="center">10</td>
+            <td class="center"><span class="severity-critical">high</span></td>
+          </tr>
+          <tr>
+            <td>1× Critical + 1× High + 1× Medium</td>
+            <td>5 + 4 + 3</td>
+            <td class="center">12</td>
+            <td class="center"><span class="severity-critical">high</span></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2 id="mitre">10. MITRE ATT&CK Coverage</h2>
+      <p>The following table maps bsuppla signals to MITRE ATT&CK techniques relevant to container supply-chain attacks:</p>
+
+      <table class="comparison-table">
+        <thead>
+          <tr>
+            <th>ATT&CK Technique</th>
+            <th>ID</th>
+            <th>bsuppla Signal(s)</th>
+            <th>Coverage</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Supply Chain Compromise</td>
+            <td>T1195</td>
+            <td>apk_repository_suspicious, lockfile_suspicious_source, package_manager_config_suspicious</td>
+            <td class="check">✓</td>
+          </tr>
+          <tr>
+            <td>Malicious Image</td>
+            <td>T1610</td>
+            <td>crypto_miner_candidate, private_key_candidate, elf_suspicious</td>
+            <td class="check">✓</td>
+          </tr>
+          <tr>
+            <td>Deploy Container</td>
+            <td>T1610.001</td>
+            <td>All signals (pre-deployment scan)</td>
+            <td class="check">✓</td>
+          </tr>
+          <tr>
+            <td>Container Administration Command</td>
+            <td>T1609</td>
+            <td>docker_socket_present (PathRule)</td>
+            <td class="partial">Partial</td>
+          </tr>
+          <tr>
+            <td>Scheduled Task/Job</td>
+            <td>T1053</td>
+            <td>startup_script_present</td>
+            <td class="check">✓</td>
+          </tr>
+          <tr>
+            <td>Boot or Logon Autostart Execution</td>
+            <td>T1547</td>
+            <td>startup_script_present, suid_or_sgid_executable</td>
+            <td class="check">✓</td>
+          </tr>
+          <tr>
+            <td>Hijack Execution Flow</td>
+            <td>T1574</td>
+            <td>elf_in_unusual_location, world_writable_executable</td>
+            <td class="check">✓</td>
+          </tr>
+          <tr>
+            <td>Obfuscated/Stored Files</td>
+            <td>T1027</td>
+            <td>elf_suspicious (packed/stripped), hidden_executable</td>
+            <td class="check">✓</td>
+          </tr>
+          <tr>
+            <td>Credentials in Files</td>
+            <td>T1552.001</td>
+            <td>private_key_candidate, credential_file, authorized_keys_present</td>
+            <td class="check">✓</td>
+          </tr>
+          <tr>
+            <td>Unsecured Credentials</td>
+            <td>T1552</td>
+            <td>insecure_shadow_permissions, world_writable_executable</td>
+            <td class="check">✓</td>
+          </tr>
+          <tr>
+            <td>System Binary Proxy Execution</td>
+            <td>T1218</td>
+            <td>risky_tool_present (nc, socat, strace)</td>
+            <td class="partial">Partial</td>
+          </tr>
+          <tr>
+            <td>Resource Hijacking</td>
+            <td>T1496</td>
+            <td>crypto_miner_candidate</td>
+            <td class="check">✓</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="highlight-box">
+        <h4>Coverage Summary</h4>
+        <p><strong>12/13</strong> relevant ATT&CK techniques have at least partial coverage. The primary gap is <strong>T1609.001</strong> (Container Administration Command - Docker socket exposure), which can be enabled via the commented <code>PathRule</code> in <code>default_registry()</code>.</p>
+      </div>
 
     </div>
 

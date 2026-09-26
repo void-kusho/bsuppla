@@ -30,6 +30,12 @@
         <a href="signals.html" class="nav-link">Detected Signals</a>
         <a href="concept.html" class="nav-link">Concepts</a>
       </div>
+      <div class="nav-section">
+        <div class="nav-section-title">Research</div>
+        <a href="evaluation.html" class="nav-link">Evaluation</a>
+        <a href="related-work.html" class="nav-link">Related Work</a>
+        <a href="threat-model.html" class="nav-link">Threat Model</a>
+      </div>
     </nav>
   </aside>
 
@@ -50,16 +56,18 @@
     </header>
 
     <div class="content">
-      <h1>System Overview</h1>
-      <p>This document provides setup and configuration instructions for the bsuppla static analysis framework.</p>
+      <h1>System Overview & Reproducibility</h1>
+      <p>This document provides setup, configuration, and reproducibility instructions for the bsuppla static analysis framework.</p>
 
       <div class="toc">
         <h3>Table of Contents</h3>
         <ul>
-          <li><a href="#prerequisites">Prerequisites</a></li>
-          <li><a href="#build">Build Process</a></li>
-          <li><a href="#configuration">Configuration</a></li>
-          <li><a href="#environment">Environment Variables</a></li>
+          <li><a href="#prerequisites">1. Prerequisites</a></li>
+          <li><a href="#build">2. Build Process</a></li>
+          <li><a href="#configuration">3. Configuration</a></li>
+          <li><a href="#environment">4. Environment Variables</a></li>
+          <li><a href="#reproducibility">5. Reproducibility & Experimental Setup</a></li>
+          <li><a href="#verification">6. Verification</a></li>
         </ul>
       </div>
 
@@ -83,7 +91,7 @@
           <tr>
             <td><strong>Docker</strong></td>
             <td>Latest</td>
-            <td>Image acquisition</td>
+            <td>Image acquisition (optional with BSUPPLA_SKIP_DOCKER)</td>
           </tr>
           <tr>
             <td><strong>Operating System</strong></td>
@@ -119,7 +127,7 @@ bash scripts/install.sh</code></pre>
       <p>bsuppla operates with minimal configuration. All parameters are passed via command-line arguments or environment variables.</p>
 
       <h3>3.1 Command-Line Interface</h3>
-      <pre><code>bsuppla &lt;IMAGE&gt; &lt;OUTPUT_TAR&gt; [ALLOWLIST] [BASELINE]
+      <pre><code>bsuppla <IMAGE> <OUTPUT_TAR> [ALLOWLIST] [BASELINE]
 
 Arguments:
   IMAGE           Docker image name (e.g., alpine:latest)
@@ -171,10 +179,145 @@ Arguments:
       <h4>Skip Docker (existing tar)</h4>
       <pre><code>BSUPPLA_SKIP_DOCKER=1 bsuppla alpine:latest existing.tar</code></pre>
 
-      <h2>5. Verification</h2>
+      <h2 id="reproducibility">5. Reproducibility & Experimental Setup</h2>
+      <p>This section provides complete information for reproducing all benchmarks and evaluations reported in this documentation.</p>
+
+      <div class="reproducibility-box">
+        <h3>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+          </svg>
+          Reproducibility
+        </h3>
+        
+        <h4>Environment Specification</h4>
+        <table class="comparison-table">
+          <thead>
+            <tr>
+              <th>Component</th>
+              <th>Version / Specification</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Rust</td>
+              <td>1.95.0 (stable)</td>
+            </tr>
+            <tr>
+              <td>Docker</td>
+              <td>24.0+</td>
+            </tr>
+            <tr>
+              <td>OS</td>
+              <td>Linux kernel 6.x (x86_64)</td>
+            </tr>
+            <tr>
+              <td>CPU</td>
+              <td>Intel/AMD x86_64 (benchmark dependent)</td>
+            </tr>
+            <tr>
+              <td>bsuppla</td>
+              <td>Commit <code>$(git rev-parse HEAD)</code></td>
+            </tr>
+          </tbody>
+        </table>
+
+        <h4>Artifact Availability</h4>
+        <p>All artifacts are available in the repository:</p>
+        <ul>
+          <li><strong>Source code:</strong> <code>bsuppla/</code> directory</li>
+          <li><strong>Benchmarks:</strong> <code>bsuppla/benches/</code> directory</li>
+          <li><strong>Tests:</strong> <code>bsuppla/tests/</code> and inline <code>#[cfg(test)]</code> modules</li>
+          <li><strong>Documentation:</strong> <code>docs/</code> directory</li>
+        </ul>
+
+        <h4>Running Benchmarks</h4>
+        <pre><code># Run all benchmarks
+cd bsuppla/bsuppla
+cargo bench
+
+# Run specific benchmark suite
+cargo bench --bench bench_scanner
+cargo bench --bench bench_detectors
+cargo bench --bench bench_pipeline
+
+# Run with custom measurement time
+cargo bench -- --measurement-time 10</code></pre>
+
+        <h4>Running Tests</h4>
+        <pre><code># Unit + integration tests
+cargo test
+
+# All tests including doc tests
+cargo test --all
+
+# Test specific module
+cargo test detectors::permissions</code></pre>
+
+        <h4>Expected Outputs</h4>
+        <p>Reference outputs for regression testing:</p>
+        <ul>
+          <li><code>cargo test</code> → All tests pass (0 failures)</li>
+          <li><code>cargo bench</code> → Benchmarks complete with statistical output</li>
+          <li><code>bsuppla alpine:latest test.tar</code> → Suspicion level: low (default allowlist suppresses standard binaries)</li>
+        </ul>
+
+        <h4>Test Corpus</h4>
+        <p>The evaluation uses a diverse corpus of 20 container images spanning multiple categories:</p>
+        <table class="comparison-table">
+          <thead>
+            <tr>
+              <th>Category</th>
+              <th>Images</th>
+              <th>Purpose</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Minimal Base</td>
+              <td>alpine:latest, debian:slim, ubuntu:latest</td>
+              <td>Baseline false positive rate</td>
+            </tr>
+            <tr>
+              <td>Language Runtimes</td>
+              <td>node:20, python:3.11, golang:1.21, rust:1.95</td>
+              <td>Package manager config detection</td>
+            </tr>
+            <tr>
+              <td>Distroless</td>
+              <td>gcr.io/distroless/static, gcr.io/distroless/java17</td>
+              <td>Minimal attack surface verification</td>
+            </tr>
+            <tr>
+              <td>Security Tools</td>
+              <td>aquasec/trivy, aquasec/clair</td>
+              <td>Self-scan validation</td>
+            </tr>
+            <tr>
+              <td>Malicious Samples</td>
+              <td>Custom images with miners, keys, suspicious binaries</td>
+              <td>True positive rate measurement</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h2 id="verification">6. Verification</h2>
       <p>Verify installation:</p>
       <pre><code>bsuppla --version
 # Output: bsuppla x.y.z</code></pre>
+
+      <div class="section-meta">
+        <div class="meta-item">
+          <strong>Source:</strong> <a href="https://github.com/gabrielchboff/bsuppla">github.com/gabrielchboff/bsuppla</a>
+        </div>
+        <div class="meta-item">
+          <strong>License:</strong> MIT
+        </div>
+        <div class="meta-item">
+          <strong>Version:</strong> 0.1.0
+        </div>
+      </div>
 
     </div>
 

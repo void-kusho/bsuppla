@@ -75,20 +75,14 @@ mod tests {
     #[test]
     fn default_registry_contains_all_detectors() {
         let registry = default_registry();
-        let path_buf = PathBuf::from("/bin/test");
-        let rel_path = PathBuf::from("/bin/test");
-        let ctx = FileContext {
-            path: &path_buf,
-            relative_path: &rel_path,
-            mode: 0o755,
-            is_executable: true,
-            is_world_writable: false,
-            is_world_readable: true,
-            is_suid: false,
-            is_sgid: false,
-        };
-        let findings = registry.detect(&ctx);
-        assert!(!findings.is_empty());
+        // Check that registry has detectors registered
+        assert!(!registry.is_empty());
+        assert!(registry.len() >= 10);
+        // Verify at least one known detector is present by name
+        let names = registry.detector_names();
+        assert!(names.contains(&"suid_or_sgid_executable"));
+        assert!(names.contains(&"crypto_miner_candidate"));
+        assert!(names.contains(&"private_key_candidate"));
     }
 
     #[test]

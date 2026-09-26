@@ -117,6 +117,18 @@ impl DetectorRegistry {
             .filter_map(|d| d.detect(ctx))
             .collect()
     }
+
+    pub fn detector_names(&self) -> Vec<&'static str> {
+        self.detectors.iter().map(|d| d.name()).collect()
+    }
+
+    pub fn len(&self) -> usize {
+        self.detectors.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.detectors.is_empty()
+    }
 }
 
 impl Default for DetectorRegistry {

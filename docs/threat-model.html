@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Threat Model - bsuppla</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-logo">
+        <img src="images/1.png" alt="bsuppla" style="height: 36px;">
+        <h1>bsuppla</h1>
+      </div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-section">
+        <div class="nav-section-title">Overview</div>
+        <a href="index.html" class="nav-link">Home</a>
+      </div>
+      <div class="nav-section">
+        <div class="nav-section-title">Getting Started</div>
+        <a href="getting-started.html" class="nav-link">Installation</a>
+        <a href="usage.html" class="nav-link">Usage</a>
+      </div>
+      <div class="nav-section">
+        <div class="nav-section-title">Reference</div>
+        <a href="architecture.html" class="nav-link">Architecture</a>
+        <a href="signals.html" class="nav-link">Detected Signals</a>
+        <a href="concept.html" class="nav-link">Concepts</a>
+      </div>
+      <div class="nav-section">
+        <div class="nav-section-title">Research</div>
+        <a href="evaluation.html" class="nav-link">Evaluation</a>
+        <a href="related-work.html" class="nav-link">Related Work</a>
+        <a href="threat-model.html" class="nav-link active">Threat Model</a>
+      </div>
+    </nav>
+  </aside>
+
+  <main class="main-content">
+    <header class="header">
+      <div class="header-links">
+        <button class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle theme">
+          <svg class="sun-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="5"/>
+            <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+          </svg>
+          <svg class="moon-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+          </svg>
+        </button>
+        <a href="https://github.com/gabrielchboff/bsuppla" target="_blank">GitHub</a>
+      </div>
+    </header>
+
+    <div class="content">
+      <h1>Threat Model & Security Guarantees</h1>
+      <p>This document defines the threat model for bsuppla, including attacker capabilities, security assumptions, guaranteed properties, and known limitations.</p>
+
+      <div class="toc">
+        <h3>Table of Contents</h3>
+        <ul>
+          <li><a href="#scope">1. Scope & Assumptions</a></li>
+          <li><a href="#assets">2. Assets & Trust Boundaries</a></li>
+          <li><a href="#adversary">3. Adversary Model</a></li>
+          <li><a href="#guarantees">4. Security Guarantees</a></li>
+          <li><a href="#threats">5. Threat Enumeration</a></li>
+          <li><a href="#mitigations">6. Mitigations</a></li>
+          <li><a href="#limitations">7. Known Limitations</a></li>
+          <li><a href="#residual">8. Residual Risk</a></li>
+        </ul>
+      </div>
+
+      <h2 id="scope">1. Scope & Assumptions</h2>
+
+      <h3>1.1 In Scope</h3>
+      <ul>
+        <li>Analysis of Docker/OCI container images via static filesystem inspection</li>
+        <li>Detection of supply-chain threats: malware, credentials, suspicious binaries, malicious configs</li>
+        <li>Execution on trusted host infrastructure (build servers, CI/CD runners, developer machines)</li>
+        <li>Integration into automated pipelines (GitHub Actions, GitLab CI, Jenkins, etc.)</li>
+      </ul>
+
+      <h3>1.2 Out of Scope</h3>
+      <ul>
+        <li>Runtime/behavioral analysis (process execution, network traffic, syscalls)</li>
+        <li>CVE/vulnerability database matching (no NVD integration)</li>
+        <li>Windows container images</li>
+        <li>Encrypted/polymorphic payload detection</li>
+        <li>Kernel-level exploits or host compromise</li>
+        <li>Social engineering or supply-chain attacks on the build pipeline itself</li>
+      </ul>
+
+      <h3>1.3 Core Assumptions</h3>
+      <table class="comparison-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Assumption</th>
+            <th>Rationale</th>
+            <th>If Violated</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>A1</td>
+            <td>Host OS/kernel is trusted</td>
+            <td>bsuppla runs as user process; kernel mediates filesystem access</td>
+            <td>Host compromise → all bets off</td>
+          </tr>
+          <tr>
+            <td>A2</td>
+            <td>Docker daemon (if used) is trusted</td>
+            <td>Only used for pull/save; skipped via BSUPPLA_SKIP_DOCKER</td>
+            <td>Daemon compromise → image tampering</td>
+          </tr>
+          <tr>
+            <td>A3</td>
+            <td>bsuppla binary is authentic</td>
+            <td>Built from verified source; checksums verified</td>
+            <td>Supply-chain attack on bsuppla itself</td>
+          </tr>
+          <tr>
+            <td>A4</td>
+            <td>Input image is untrusted</td>
+            <td>Primary threat model assumption</td>
+            <td>N/A — this is the threat</td>
+          </tr>
+          <tr>
+            <td>A5</td>
+            <td>Filesystem semantics are POSIX-compliant</td>
+            <td>Relies on st_mode, symlink behavior, path resolution</td>
+            <td>Non-standard FS → detection gaps</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2 id="assets">2. Assets & Trust Boundaries</h2>
+
+      <div class="threat-model">
+        <h3>Asset Classification</h3>
+        <table class="comparison-table">
+          <thead>
+            <tr>
+              <th>Asset</th>
+              <th>Classification</th>
+              <th>Protection</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>bsuppla source code</td>
+              <td>Trusted (integrity-critical)</td>
+              <td>Git signed commits, CI verification, reproducible builds</td>
+            </tr>
+            <tr>
+              <td>bsuppla binary</td>
+              <td>Trusted (execution-critical)</td>
+              <td>Checksum verification, signed releases</td>
+            </tr>
+            <tr>
+              <td>Detector registry</td>
+              <td>Trusted (logic-critical)</td>
+              <td>Compiled in; immutable at runtime</td>
+            </tr>
+            <tr>
+              <td>Allowlist file</td>
+              <td>Semi-trusted (policy)</td>
+              <td>User-controlled; validated on load</td>
+            </tr>
+            <tr>
+              <td>Baseline file</td>
+              <td>Semi-trusted (reference)</td>
+              <td>Generated by trusted bsuppla; user-verified</td>
+            </tr>
+            <tr>
+              <td>Docker image (input)</td>
+              <td>Untrusted (adversarial)</td>
+              <td>Zero execution; read-only analysis</td>
+            </tr>
+            <tr>
+              <td>Extracted filesystem</td>
+              <td>Untrusted (derived)</td>
+              <td>Temporary directory; cleaned after scan</td>
+            </tr>
+            <tr>
+              <td>Analysis output</td>
+              <td>Trusted (result)</td>
+              <td>Generated by verified code</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>2.1 Trust Boundary Diagram</h3>
+      <div class="figure">
+        <pre><code>
+┌─────────────────────────────────────────────────────────────────┐
+│                        TRUSTED HOST                              │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────────────┐  │
+│  │ bsuppla      │  │ Docker       │  │ Host Kernel / FS     │  │
+│  │ Binary       │  │ Daemon       │  │ (Trusted)            │  │
+│  │ (Trusted)    │  │ (Trusted*)   │  │                      │  │
+│  └──────┬───────┘  └──────┬───────┘  └──────────┬───────────┘  │
+│         │                 │                      │              │
+│         │ BSUPPLA_        │ docker pull/save     │              │
+│         │ SKIP_DOCKER     │ (optional)           │              │
+│         ▼                 ▼                      ▼              │
+│  ┌──────────────────────────────────────────────────────────┐  │
+│  │                    ANALYSIS BOUNDARY                      │  │
+│  │  ┌──────────────┐  ┌──────────────┐  ┌────────────────┐  │  │
+│  │  │ Input:       │  │ Processing:  │  │ Output:        │  │  │
+│  │  │ Docker Image │─►│ Extract +    │─►│ Findings +     │  │  │
+│  │  │ (UNTRUSTED)  │  │ Scan         │  │ Suspicion      │  │  │
+│  │  └──────────────┘  │ (Trusted)    │  │ (Trusted)      │  │  │
+│  │                    └──────────────┘  └────────────────┘  │  │
+│  └──────────────────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────────┘
+* Docker daemon only used for acquisition phase; skipped if BSUPPLA_SKIP_DOCKER=1
+</code></pre>
+      </div>
+
+      <h2 id="adversary">3. Adversary Model</h3>
+
+      <h3>3.1 Attacker Capabilities</h3>
+      <p>The adversary controls the Docker image content and can:</p>
+      <ul>
+        <li>Embed arbitrary files, binaries, scripts, configurations</li>
+        <li>Craft malicious ELF binaries (packed, stripped, corrupted headers)</li>
+        <li>Create symlink chains, deep directory structures, long paths</li>
+        <li>Embed files with unusual permissions (SUID, world-writable, sticky)</li>
+        <li>Hide payloads in alternate data streams, extended attributes</li>
+        <li>Craft tar archives with malformed headers, overlapping entries</li>
+        <li>Use case-insensitive filesystem tricks (if host FS permits)</li>
+      </ul>
+
+      <h3>3.2 Attacker Goals</h3>
+      <ol>
+        <li><strong>Code Execution:</strong> Trigger execution of malicious payload during analysis</li>
+        <li><strong>Evasion:</strong> Hide malicious artifacts from detectors</li>
+        <li><strong>Denial of Service:</strong> Cause analyzer crash, hang, or resource exhaustion</li>
+        <li><strong>False Confidence:</strong> Cause benign image to appear malicious (or vice versa)</li>
+        <li><strong>Information Leakage:</strong> Extract host filesystem data via path traversal</li>
+      </ul>
+
+      <h3>3.3 Attacker Limitations</h3>
+      <ul>
+        <li>Cannot execute code on host during analysis (enforced by design)</li>
+        <li>Cannot modify bsuppla binary or detector registry at runtime</li>
+        <li>Cannot access host network during analysis phase</li>
+        <li>Cannot escape extracted filesystem directory (chroot-like isolation)</li>
+      </ul>
+
+      <h2 id="guarantees">4. Security Guarantees</h2>
+
+      <div class="theorem">
+        <div class="theorem-title">Guarantee 1: Zero Code Execution (Theorem 1)</div>
+        <p>No code from the analyzed Docker image is ever executed during analysis.</p>
+      </div>
+      <p><strong>Mechanism:</strong> Analysis uses only <code>symlink_metadata</code>, <code>read_dir</code>, <code>File::open</code> (read-only). No <code>execve</code>, <code>fork</code>, <code>ptrace</code>, <code>dlopen</code>. The <code>Detector</code> trait provides no execution capability.</p>
+
+      <div class="theorem">
+        <div class="theorem-title">Guarantee 2: Deterministic Output (Theorem 2)</div>
+        <p>Identical input image + configuration always produces identical findings.</p>
+      </div>
+      <p><strong>Mechanism:</strong> Pure functions throughout pipeline. No randomness, timestamps, hash maps with random seeds, or external state. Registry order is fixed at compile time.</p>
+
+      <div class="theorem">
+        <div class="theorem-title">Guarantee 3: Memory Safety</div>
+        <p>No buffer overflows, use-after-free, double-free, or data races in analysis code.</p>
+      </div>
+      <p><strong>Mechanism:</strong> Written in safe Rust. Zero <code>unsafe</code> blocks in detection logic. All file I/O uses <code>std::fs</code> safe abstractions.</p>
+
+      <div class="theorem">
+        <div class="theorem-title">Guarantee 4: Detector Isolation (Theorem 4)</div>
+        <p>A failure in one detector cannot affect other detectors or the scanner.</p>
+      </div>
+      <p><strong>Mechanism:</strong> Detectors are <code>Send + Sync</code> trait objects. <code>DetectorRegistry::detect</code> calls each independently via <code>filter_map</code>. No shared mutable state.</p>
+
+      <div class="theorem">
+        <div class="theorem-title">Guarantee 5: Path Traversal Prevention</div>
+        <p>Analysis cannot escape the extraction directory or follow symlinks outside it.</p>
+      </div>
+      <p><strong>Mechanism:</strong> <code>walk_dir</code> uses <code>symlink_metadata</code> and skips symlinks entirely. Paths are resolved relative to extraction root. <code>strip_prefix</code> ensures all paths are contained.</p>
+
+      <h2 id="threats">5. Threat Enumeration (STRIDE)</h3>
+
+      <table class="comparison-table">
+        <thead>
+          <tr>
+            <th>Category</th>
+            <th>Threat</th>
+            <th>Vector</th>
+            <th>Impact</th>
+            <th>Mitigation</th>
+            <th>Residual</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Spoofing</td>
+            <td>Fake detector registration</td>
+            <td>Supply-chain attack on bsuppla crate</td>
+            <td>High</td>
+            <td>Signed releases, reproducible builds</td>
+            <td>Low</td>
+          </tr>
+          <tr>
+            <td>Tampering</td>
+            <td>Malicious tar corrupts extraction</td>
+            <td>Path traversal, symlink races</td>
+            <td>High</td>
+            <td>Symlink skip, strip_prefix, clean output dir</td>
+            <td>Low</td>
+          </tr>
+          <tr>
+            <td>Repudiation</td>
+            <td>Attacker claims false negative</td>
+            <td>Evasion via obfuscation</td>
+            <td>Medium</td>
+            <td>Deterministic output, baseline comparison</td>
+            <td>Medium</td>
+          </tr>
+          <tr>
+            <td>Info Disclosure</td>
+            <td>Host FS leak via path traversal</td>
+            <td>../../etc/passwd in tar</td>
+            <td>High</td>
+            <td>Path normalization, containment check</td>
+            <td>Low</td>
+          </tr>
+          <tr>
+            <td>DoS</td>
+            <td>Resource exhaustion (zip bomb)</td>
+            <td>Nested archives, sparse files</td>
+            <td>Medium</td>
+            <td>Size limits (5 MiB ELF), no recursion</td>
+            <td>Medium</td>
+          </tr>
+          <tr>
+            <td>Elevation</td>
+            <td>Code execution via ELF parsing</td>
+            <td>goblin parser bugs</td>
+            <td>Critical</td>
+            <td>Parser in safe Rust; no execution</td>
+            <td>Low</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>5.1 Detailed Attack Vectors</h3>
+
+      <h4>5.1.1 Tar Archive Attacks</h4>
+      <ul>
+        <li><strong>Absolute paths:</strong> Tar entries with <code>/etc/passwd</code> — mitigated by <code>strip_prefix</code> relative to extraction root</li>
+        <li><strong>Symlinks:</strong> <code>linkname=../../etc/passwd</code> — mitigated by skipping symlinks entirely</li>
+        <li><strong>Hard links:</strong> Multiple entries pointing to same inode — handled by tar crate</li>
+        <li><strong>Long paths:</strong> >PATH_MAX — tar crate handles; filesystem may reject</li>
+      </ul>
+
+      <h4>5.1.2 Filesystem Attacks</h4>
+      <ul>
+        <li><strong>SUID/SGID binaries:</strong> Detected by <code>SuidSgidDetector</code>; never executed</li>
+        <li><strong>Device files:</strong> <code>mknod</code> in tar — tar crate ignores or errors</li>
+        <li><strong>Named pipes/sockets:</strong> Skipped by <code>is_file()</code> check</li>
+        <li><strong>Extended attributes:</strong> Not read; no attack surface</li>
+      </ul>
+
+      <h4>5.1.3 ELF Parsing Attacks</h4>
+      <ul>
+        <li><strong>Malformed headers:</strong> goblin returns <code>Err</code>; detector returns <code>None</code></li>
+        <li><strong>Integer overflows:</strong> goblin uses checked arithmetic</li>
+        <li><strong>OOB reads:</strong> Bounded by 5 MiB read limit</li>
+        <li><strong>Infinite loops:</strong> Section header iteration bounded by file size</li>
+      </ul>
+
+      <h4>5.1.4 Evasion Techniques</h4>
+      <table class="comparison-table">
+        <thead>
+          <tr>
+            <th>Technique</th>
+            <th>Example</th>
+            <th>Detected?</th>
+            <th>Notes</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Obfuscated miner binary</td>
+            <td>Renamed xmrig, custom build</td>
+            <td class="partial">Partial</td>
+            <td>Name-based only; content hash not checked</td>
+          </tr>
+          <tr>
+            <td>Encrypted payload</td>
+            <td>Encrypted blob + stub decryptor</td>
+            <td class="cross">No</td>
+            <td>Static analysis cannot decrypt</td>
+          </tr>
+          <tr>
+            <td>Polyglot file</td>
+            <td>Valid ELF + valid script</td>
+            <td class="check">Yes</td>
+            <td>ELF detector triggers on header</td>
+          </tr>
+          <tr>
+            <td>Hidden in alternate stream</td>
+            <td>NTFS ADS / macOS resource fork</td>
+            <td class="cross">No</td>
+            <td>Not extracted by tar on Linux</td>
+          </tr>
+          <tr>
+            <td>Time-based trigger</td>
+            <td>Malware activates after date</td>
+            <td class="cross">No</td>
+            <td>Static analysis cannot observe time</td>
+          </tr>
+          <tr>
+            <td>Environment-dependent</td>
+            <td>Checks for CI env vars</td>
+            <td class="cross">No</td>
+            <td>No execution = no env observation</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2 id="mitigations">6. Mitigations</h2>
+
+      <h3>6.1 Design-Level Mitigations</h3>
+      <ul>
+        <li><strong>Zero Execution:</strong> Fundamental guarantee — no code path leads to execution</li>
+        <li><strong>Read-Only Analysis:</strong> Extraction directory created fresh per scan; no writes to source</li>
+        <li><strong>Symlink Rejection:</strong> Eliminates entire class of path traversal</li>
+        <li><strong>Size Bounds:</strong> ELF parsing limited to 5 MiB; config files to 64/128 KiB</li>
+        <li><strong>No Network in Analysis:</strong> Air-gap compatible by design</li>
+        <li><strong>Immutable Registry:</strong> Detectors registered at compile time; no dynamic loading</li>
+      </ul>
+
+      <h3>6.2 Operational Mitigations</h3>
+      <ul>
+        <li><strong>Run in Container/VM:</strong> Additional isolation layer for defense-in-depth</li>
+        <li><strong>Verify Binary:</strong> <code>sha256sum bsuppla | grep -f checksums.txt</code></li>
+        <li><strong>Use BSUPPLA_SKIP_DOCKER:</strong> Eliminates Docker daemon from TCB</li>
+        <li><strong>Allowlist Review:</strong> Audit allowlist entries; don't over-suppress</li>
+        <li><strong>Baseline Rotation:</strong> Regenerate baselines after verified image updates</li>
+      </ul>
+
+      <h2 id="limitations">7. Known Limitations</h2>
+
+      <div class="limitation-box">
+        <div class="limitation-title">Limitation 1: Static Analysis Cannot Detect Encrypted/Encoded Payloads</div>
+        <p>If malicious code is encrypted, encoded, or compressed with custom algorithms, static analysis cannot observe the plaintext. This is a fundamental limitation of static analysis.</p>
+        <p><strong>Mitigation:</strong> ELF detector flags packed/UPX binaries as suspicious; entropy analysis could be added.</p>
+      </div>
+
+      <div class="limitation-box">
+        <div class="limitation-title">Limitation 2: No Behavioral/Runtime Visibility</div>
+        <p>Malware that downloads payloads at runtime, checks environment, or uses time-based triggers will not be detected.</p>
+        <p><strong>Mitigation:</strong> Combine with runtime security (Falco, Tracee) for defense-in-depth.</p>
+      </div>
+
+      <div class="limitation-box">
+        <div class="limitation-title">Limitation 3: Signature-Based Detection</strong></div>
+        <p>Crypto miner and risky tool detection relies on known name lists. Novel or renamed tools evade detection.</p>
+        <p><strong>Mitigation:</strong> Allowlist suppresses FPs; heuristic ELF analysis catches suspicious binaries regardless of name.</p>
+      </div>
+
+      <div class="limitation-box">
+        <div class="limitation-title">Limitation 4: Linux-Only</div>
+        <p>Analysis assumes Linux filesystem semantics (permissions, ELF, paths). Windows containers not supported.</p>
+        <p><strong>Mitigation:</strong> Document clearly; Windows support would require separate implementation.</p>
+      </div>
+
+      <div class="limitation-box">
+        <div class="limitation-title">Limitation 5: No CVE/Vulnerability Data</div>
+        <p>bsuppla does not match package versions against vulnerability databases.</p>
+        <p><strong>Mitigation:</strong> Run alongside Trivy/Grype/Clair for comprehensive coverage.</p>
+      </div>
+
+      <div class="limitation-box">
+        <div class="limitation-title">Limitation 6: 5 MiB ELF Read Limit</div>
+        <p>Very large binaries (>5 MiB) are only partially parsed. Could miss packer signatures in later sections.</p>
+        <p><strong>Mitigation:</strong> Most packers modify early sections; 5 MiB covers headers + early sections. Configurable if needed.</p>
+      </div>
+
+      <h2 id="residual">8. Residual Risk Assessment</h2>
+
+      <table class="benchmark-table">
+        <thead>
+          <tr>
+            <th>Risk</th>
+            <th>Likelihood</th>
+            <th>Impact</th>
+            <th>Overall</th>
+            <th>Acceptance</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Encrypted payload evasion</td>
+            <td>Medium</td>
+            <td>High</td>
+            <td class="center">Medium-High</td>
+            <td>Accepted — fundamental static analysis limit</td>
+          </tr>
+          <tr>
+            <td>Novel malware not in signatures</td>
+            <td>High</td>
+            <td>Medium</td>
+            <td class="center">Medium</td>
+            <td>Accepted — heuristic ELF + permissions catch many</td>
+          </tr>
+          <tr>
+            <td>Tar parser vulnerability (Rust std)</td>
+            <td>Very Low</td>
+            <td>High</td>
+            <td class="center">Low</td>
+            <td>Accepted — mature crate, fuzzed</td>
+          </tr>
+          <tr>
+            <td>ELF parser vulnerability (goblin)</td>
+            <td>Low</td>
+            <td>Medium</td>
+            <td class="center">Low</td>
+            <td>Accepted — safe Rust, bounded reads</td>
+          </tr>
+          <tr>
+            <td>Symlink race (TOCTOU)</td>
+            <td>Very Low</td>
+            <td>Medium</td>
+            <td class="center">Very Low</td>
+            <td>Mitigated — symlinks skipped entirely</td>
+          </tr>
+          <tr>
+            <td>Path traversal in extraction</td>
+            <td>Very Low</td>
+            <td>High</td>
+            <td class="center">Very Low</td>
+            <td>Mitigated — strip_prefix, clean dir</td>
+          </tr>
+          <tr>
+            <td>Docker daemon compromise</td>
+            <td>Low</td>
+            <td>High</td>
+            <td class="center">Medium</td>
+            <td>Mitigated — BSUPPLA_SKIP_DOCKER=1</td>
+          </tr>
+          <tr>
+            <td>bsuppla binary supply-chain</td>
+            <td>Very Low</td>
+            <td>Critical</td>
+            <td class="center">Low</td>
+            <td>Mitigated — signed releases, reproducible build</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>8.1 Risk Acceptance Criteria</h3>
+      <p>The following residual risks are <strong>accepted</strong> based on:</p>
+      <ol>
+        <li><strong>Fundamental limits:</strong> Static analysis cannot decrypt or observe runtime behavior</li>
+        <li><strong>Defense in depth:</strong> bsuppla is one layer; runtime tools address complementary threats</li>
+        <li><strong>Cost-benefit:</strong> Mitigating further would require dynamic analysis (breaking zero-execution)</li>
+        <li><strong>Transparency:</strong> Limitations documented; users can make informed decisions</li>
+      </ol>
+
+      <h2>9. Security Testing</h2>
+
+      <h3>9.1 Fuzzing</h3>
+      <ul>
+        <li><strong>Tar parsing:</strong> cargo-fuzz on <code>ingest::image::read_manifest_from_image</code></li>
+        <li><strong>ELF parsing:</strong> cargo-fuzz on <code>detectors::elf::elf_suspicious_detail</code></li>
+        <li><strong>Config parsing:</strong> cargo-fuzz on package manager config parsers</li>
+      </ul>
+
+      <h3>9.2 Property Testing</h3>
+      <ul>
+        <li><strong>Determinism:</strong> proptest: same input → same output (1000 iterations)</li>
+        <li><strong>Allowlist idempotence:</strong> allowlist(allowlist(x)) = allowlist(x)</li>
+        <li><strong>Baseline symmetry:</strong> diff(A,B) + diff(B,A) = symmetric difference</li>
+      </ul>
+
+      <h3>9.3 Penetration Testing</h3>
+      <ul>
+        <li>Malformed tar archives (tar-fuzz corpus)</li>
+        <li>Malformed ELF binaries (ELF-fuzz corpus)</li>
+        <li>Path traversal attempts (custom test suite)</li>
+        <li>Resource exhaustion (nested archives, sparse files)</li>
+      </ul>
+
+      <h2>10. Incident Response</h2>
+
+      <h3>10.1 If Malicious Image Analyzed</h3>
+      <ol>
+        <li>No code executed — no immediate host compromise</li>
+        <li>Findings logged with suspicion level</li>
+        <li>Extraction directory auto-cleaned</li>
+        <li>Review findings; update detectors if novel technique</li>
+      </ol>
+
+      <h3>10.2 If False Negative Discovered</h3>
+      <ol>
+        <li>Add test case to detector test suite</li>
+        <li>Implement detection logic (1-line PathRule or new Detector)</li>
+        <li>Run full test suite; verify no regressions</li>
+        <li>Release patch version</li>
+      </ol>
+
+      <h3>10.3 If False Positive Spike</h3>
+      <ol>
+        <li>Add allowlist entry (glob pattern)</li>
+        <li>If systemic: refine detector logic</li>
+        <li>Run evaluation corpus; verify F1 maintained</li>
+      </ol>
+
+      <h2>11. Conclusion</h2>
+      <p>The bsuppla threat model is built on a minimal trusted computing base (Rust stdlib + goblin + tar crates) with a clear trust boundary between the analyzer and the untrusted input image. The design provides strong guarantees:</p>
+      <ul>
+        <li><strong>Zero execution</strong> — mathematically enforced by design</li>
+        <li><strong>Determinism</strong> — enables reproducible audits</li>
+        <li><strong>Memory safety</strong> — eliminates entire vulnerability classes</li>
+        <li><strong>Isolation</strong> — detector failures contained</li>
+      </ul>
+      <p>Residual risks are documented, accepted based on fundamental static analysis limits, and mitigated through defense-in-depth deployment recommendations.</p>
+
+    </div>
+
+    <footer class="footer">
+      <p>bsuppla &copy; 2024. MIT License.</p>
+    </footer>
+  </main>
+
+  <script>
+    function toggleTheme() {
+      const html = document.documentElement;
+      const currentTheme = html.getAttribute('data-theme');
+      const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+      html.setAttribute('data-theme', newTheme === 'dark' ? '' : 'light');
+      localStorage.setItem('theme', newTheme);
+    }
+    
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme === 'light') {
+      document.documentElement.setAttribute('data-theme', 'light');
+    }
+  </script>
+</body>
+</html>

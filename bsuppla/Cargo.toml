@@ -3,6 +3,18 @@ name = "bsuppla"
 version = "0.1.0"
 edition = "2024"
 
+[[bench]]
+name = "bench_scanner"
+harness = false
+
+[[bench]]
+name = "bench_detectors"
+harness = false
+
+[[bench]]
+name = "bench_pipeline"
+harness = false
+
 [dependencies]
 tar = "0.4"
 flate2 = "1.0"
@@ -13,3 +25,7 @@ walkdir = "2.5"
 clap = { version = "4.5", features = ["derive"] }
 thiserror = "2.0"
 which = "6"
+
+[dev-dependencies]
+criterion = "0.5"
+tempfile = "3.8"

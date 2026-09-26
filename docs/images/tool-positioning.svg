@@ -1,140 +1,126 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 840 540" width="840" height="540">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 480" width="880" height="480">
   <defs>
     <style>
       .axis { stroke: #94a3b8; stroke-width: 2; }
-      .axis-label { font: 600 13px 'Segoe UI', system-ui, sans-serif; fill: #475569; }
-      .tool-cve { fill: #dbeafe; stroke: #3b82f6; stroke-width: 2; rx: 8; }
-      .tool-supply { fill: #dcfce7; stroke: #16a34a; stroke-width: 2; rx: 8; }
-      .tool-config { fill: #fef3c7; stroke: #f59e0b; stroke-width: 2; rx: 8; }
-      .tool-dynamic { fill: #fce7f3; stroke: #ec4899; stroke-width: 2; rx: 8; }
-      .tool-bsuppla { fill: #f3e8ff; stroke: #a855f7; stroke-width: 3; rx: 8; }
-      .tool-label { font: 500 11px 'Segoe UI', system-ui, sans-serif; fill: #1e293b; }
-      .tool-sub { font: 400 9px 'Segoe UI', system-ui, sans-serif; fill: #64748b; }
-      .quadrant-label { font: 600 12px 'Segoe UI', system-ui, sans-serif; fill: #475569; opacity: 0.5; }
+      .axis-label { font: 600 12px 'Segoe UI', system-ui, sans-serif; fill: #475569; }
+      .tool-cve { fill: #dbeafe; stroke: #3b82f6; stroke-width: 2; rx: 6; }
+      .tool-supply { fill: #dcfce7; stroke: #16a34a; stroke-width: 2; rx: 6; }
+      .tool-config { fill: #fef3c7; stroke: #f59e0b; stroke-width: 2; rx: 6; }
+      .tool-dynamic { fill: #fce7f3; stroke: #ec4899; stroke-width: 2; rx: 6; }
+      .tool-bsuppla { fill: #f3e8ff; stroke: #a855f7; stroke-width: 3; rx: 6; }
+      .tool-label { font: 500 10px 'Segoe UI', system-ui, sans-serif; fill: #1e293b; }
+      .tool-sub { font: 400 8px 'Segoe UI', system-ui, sans-serif; fill: #64748b; }
+      .quadrant-label { font: 600 11px 'Segoe UI', system-ui, sans-serif; fill: #475569; opacity: 0.4; }
       .arrow-main { fill: none; stroke: #a855f7; stroke-width: 3; marker-end: url(#bigarrow); }
-      .legend-box { fill: #f8fafc; stroke: #cbd5e1; stroke-width: 1; rx: 6; }
-      .legend-title { font: 600 11px 'Segoe UI', system-ui, sans-serif; fill: #334155; }
-      .legend-item { font: 400 10px 'Segoe UI', system-ui, sans-serif; fill: #475569; }
+      .legend-box { fill: #f8fafc; stroke: #cbd5e1; stroke-width: 1; rx: 4; }
+      .legend-title { font: 600 10px 'Segoe UI', system-ui, sans-serif; fill: #334155; }
+      .legend-item { font: 400 9px 'Segoe UI', system-ui, sans-serif; fill: #475569; }
     </style>
-    <marker id="bigarrow" markerWidth="14" markerHeight="10" refX="12" refY="5" orient="auto">
-      <polygon points="0 0, 14 5, 0 10" fill="#a855f7"/>
+    <marker id="bigarrow" markerWidth="12" markerHeight="8" refX="10" refY="4" orient="auto">
+      <polygon points="0 0, 12 4, 0 8" fill="#a855f7"/>
     </marker>
   </defs>
 
   <!-- Axes -->
-  <line x1="80" y1="460" x2="760" y2="460" class="axis"/>
-  <line x1="420" y1="60" x2="420" y2="460" class="axis"/>
+  <line x1="80" y1="400" x2="800" y2="400" class="axis"/>
+  <line x1="440" y1="60" x2="440" y2="400" class="axis"/>
 
   <!-- Arrow heads on axes -->
-  <polygon points="755 455, 760 460, 755 465" fill="#94a3b8"/>
-  <polygon points="415 65, 420 60, 425 65" fill="#94a3b8"/>
+  <polygon points="795 395, 800 400, 795 405" fill="#94a3b8"/>
+  <polygon points="435 65, 440 60, 445 65" fill="#94a3b8"/>
 
   <!-- X Axis Label -->
-  <text x="420" y="505" class="axis-label" text-anchor="middle">Static (Safe) ─────────────────────────────────────────────► Dynamic (Risk)</text>
+  <text x="440" y="445" class="axis-label" text-anchor="middle">Static (Safe) ─────────────────────────────────────────────────► Dynamic (Risk)</text>
 
   <!-- Y Axis Label (rotated) -->
-  <text x="25" y="260" class="axis-label" text-anchor="middle" transform="rotate(-90 25 260)">CVE-Focused (Vuln Mgmt) ──────────► Supply-Chain Focused (Threat Detection)</text>
+  <text x="30" y="230" class="axis-label" text-anchor="middle" transform="rotate(-90 30 230)">CVE-Focused (Vuln Mgmt) ──────────► Supply-Chain Focused (Threat Detection)</text>
 
   <!-- Quadrant Labels (faded) -->
-  <text x="220" y="120" class="quadrant-label" text-anchor="middle">CVE-Focused Static</text>
-  <text x="620" y="120" class="quadrant-label" text-anchor="middle">Supply-Chain Static</text>
-  <text x="220" y="430" class="quadrant-label" text-anchor="middle">Config/Lint Static</text>
-  <text x="620" y="430" class="quadrant-label" text-anchor="middle">Dynamic Runtime</text>
+  <text x="220" y="110" class="quadrant-label" text-anchor="middle">CVE-Focused Static</text>
+  <text x="660" y="110" class="quadrant-label" text-anchor="middle">Supply-Chain Static</text>
+  <text x="220" y="380" class="quadrant-label" text-anchor="middle">Config/Lint Static</text>
+  <text x="660" y="380" class="quadrant-label" text-anchor="middle">Dynamic Runtime</text>
 
   <!-- ===== TOP-LEFT: CVE-Focused Static ===== -->
-  <!-- Trivy -->
-  <rect x="80" y="140" width="220" height="80" class="tool-cve"/>
-  <text x="190" y="168" class="tool-label" text-anchor="middle">Trivy</text>
-  <text x="190" y="186" class="tool-sub" text-anchor="middle">CVE + Secrets + Config + SBOM</text>
-  <text x="190" y="202" class="tool-sub" text-anchor="middle">Go • ~50 MB • Rego policies</text>
+  <rect x="60" y="125" width="260" height="65" class="tool-cve"/>
+  <text x="190" y="148" class="tool-label" text-anchor="middle">Trivy</text>
+  <text x="190" y="163" class="tool-sub" text-anchor="middle">CVE + Secrets + Config + SBOM • Go • ~50 MB • Rego policies</text>
+  <text x="190" y="178" class="tool-sub" text-anchor="middle">CVE-first; supply-chain secondary • No zero-exec guarantee</text>
 
-  <!-- Grype -->
-  <rect x="80" y="235" width="220" height="80" class="tool-cve"/>
-  <text x="190" y="263" class="tool-label" text-anchor="middle">Grype</text>
-  <text x="190" y="281" class="tool-sub" text-anchor="middle">Syft catalog + Vuln matching</text>
-  <text x="190" y="297" class="tool-sub" text-anchor="middle">Go • ~30 MB • Custom matchers</text>
+  <rect x="60" y="200" width="260" height="65" class="tool-cve"/>
+  <text x="190" y="223" class="tool-label" text-anchor="middle">Grype</text>
+  <text x="190" y="238" class="tool-sub" text-anchor="middle">Syft catalog + Vuln matching • Go • ~30 MB • Custom matchers</text>
+  <text x="190" y="253" class="tool-sub" text-anchor="middle">Focused on vulnerability matching • No custom detector framework</text>
 
-  <!-- Clair -->
-  <rect x="80" y="330" width="220" height="80" class="tool-cve"/>
-  <text x="190" y="358" class="tool-label" text-anchor="middle">Clair</text>
-  <text x="190" y="376" class="tool-sub" text-anchor="middle">Service • Postgres • gRPC API</text>
-  <text x="190" y="392" class="tool-sub" text-anchor="middle">Continuous layer indexing</text>
+  <rect x="60" y="275" width="260" height="65" class="tool-cve"/>
+  <text x="190" y="298" class="tool-label" text-anchor="middle">Clair</text>
+  <text x="190" y="313" class="tool-sub" text-anchor="middle">Service + Postgres + gRPC API • Continuous layer indexing</text>
+  <text x="190" y="328" class="tool-sub" text-anchor="middle">Requires running service • Not air-gapped friendly</text>
 
-  <!-- Docker Scan/Scout -->
-  <rect x="80" y="425" width="220" height="55" class="tool-cve"/>
-  <text x="190" y="450" class="tool-label" text-anchor="middle">Docker Scan / Scout</text>
-  <text x="190" y="468" class="tool-sub" text-anchor="middle">Snyk DB • Cloud • Closed ecosystem</text>
+  <rect x="60" y="350" width="260" height="50" class="tool-cve"/>
+  <text x="190" y="372" class="tool-label" text-anchor="middle">Docker Scan / Scout</text>
+  <text x="190" y="387" class="tool-sub" text-anchor="middle">Snyk DB • Cloud • Closed ecosystem • Requires Docker account</text>
 
   <!-- ===== TOP-RIGHT: Supply-Chain Static ===== -->
   <!-- bsuppla - THE STAR -->
-  <rect x="440" y="140" width="300" height="90" class="tool-bsuppla"/>
-  <text x="590" y="170" class="tool-label" text-anchor="middle" fill="#7c3aed">bsuppla</text>
-  <text x="590" y="190" class="tool-sub" text-anchor="middle" fill="#7c3aed">Zero-Execution Guarantee • Supply-Chain Threat Detection</text>
-  <text x="590" y="208" class="tool-sub" text-anchor="middle" fill="#7c3aed">Rust • ~4 MB • 1-line Rust detectors • Baseline Diff • Allowlist</text>
+  <rect x="460" y="125" width="320" height="80" class="tool-bsuppla"/>
+  <text x="620" y="150" class="tool-label" text-anchor="middle" fill="#7c3aed">bsuppla</text>
+  <text x="620" y="168" class="tool-sub" text-anchor="middle" fill="#7c3aed">Zero-Execution Guarantee • Supply-Chain Threat Detection</text>
+  <text x="620" y="184" class="tool-sub" text-anchor="middle" fill="#7c3aed">Rust • ~4 MB • 1-line Rust detectors • Baseline Diff • Allowlist</text>
+  <text x="620" y="200" class="tool-sub" text-anchor="middle" fill="#7c3aed">15 detectors across 5 categories • Deterministic • Offline-capable</text>
 
-  <!-- Syft -->
-  <rect x="440" y="245" width="220" height="70" class="tool-supply"/>
-  <text x="550" y="272" class="tool-label" text-anchor="middle">Syft</text>
-  <text x="550" y="290" class="tool-sub" text-anchor="middle">SBOM Generator (SPDX, CycloneDX)</text>
-  <text x="550" y="306" class="tool-sub" text-anchor="middle">Complementary to bsuppla</text>
+  <rect x="460" y="215" width="240" height="60" class="tool-supply"/>
+  <text x="580" y="235" class="tool-label" text-anchor="middle">Syft</text>
+  <text x="580" y="250" class="tool-sub" text-anchor="middle">SBOM Generator (SPDX, CycloneDX) • Complementary to bsuppla</text>
 
-  <!-- Cosign/Sigstore -->
-  <rect x="440" y="330" width="220" height="70" class="tool-supply"/>
-  <text x="550" y="357" class="tool-label" text-anchor="middle">Cosign / Sigstore</text>
-  <text x="550" y="375" class="tool-sub" text-anchor="middle">Image Signing • Transparency Logs</text>
-  <text x="550" y="391" class="tool-sub" text-anchor="middle">Orthogonal: verifies provenance</text>
+  <rect x="460" y="285" width="240" height="60" class="tool-supply"/>
+  <text x="580" y="305" class="tool-label" text-anchor="middle">Cosign / Sigstore</text>
+  <text x="580" y="320" class="tool-sub" text-anchor="middle">Image Signing • Transparency Logs • Orthogonal: verifies provenance</text>
 
-  <!-- SLSA -->
-  <rect x="440" y="415" width="220" height="55" class="tool-supply"/>
-  <text x="550" y="440" class="tool-label" text-anchor="middle">SLSA Framework</text>
-  <text x="550" y="458" class="tool-sub" text-anchor="middle">Supply-Chain Levels • Guidance (not a tool)</text>
+  <rect x="460" y="355" width="240" height="50" class="tool-supply"/>
+  <text x="580" y="375" class="tool-label" text-anchor="middle">SLSA Framework</text>
+  <text x="580" y="390" class="tool-sub" text-anchor="middle">Supply-Chain Levels • Guidance (not a tool)</text>
 
   <!-- ===== BOTTOM-LEFT: Config/Lint Static ===== -->
-  <!-- Dockle -->
-  <rect x="80" y="490" width="145" height="55" class="tool-config"/>
-  <text x="152.5" y="515" class="tool-label" text-anchor="middle">Dockle</text>
-  <text x="152.5" y="530" class="tool-sub" text-anchor="middle">CIS Benchmarks</text>
+  <rect x="60" y="410" width="165" height="55" class="tool-config"/>
+  <text x="142.5" y="432" class="tool-label" text-anchor="middle">Dockle</text>
+  <text x="142.5" y="445" class="tool-sub" text-anchor="middle">CIS Benchmarks</text>
 
-  <!-- Hadolint -->
-  <rect x="235" y="490" width="145" height="55" class="tool-config"/>
-  <text x="307.5" y="515" class="tool-label" text-anchor="middle">Hadolint</text>
-  <text x="307.5" y="530" class="tool-sub" text-anchor="middle">Dockerfile Linter</text>
+  <rect x="235" y="410" width="165" height="55" class="tool-config"/>
+  <text x="317.5" y="432" class="tool-label" text-anchor="middle">Hadolint</text>
+  <text x="317.5" y="445" class="tool-sub" text-anchor="middle">Dockerfile Linter</text>
 
-  <!-- Checkov -->
-  <rect x="390" y="490" width="145" height="55" class="tool-config"/>
-  <text x="462.5" y="515" class="tool-label" text-anchor="middle">Checkov</text>
-  <text x="462.5" y="530" class="tool-sub" text-anchor="middle">IaC Scanner</text>
+  <rect x="410" y="410" width="165" height="55" class="tool-config"/>
+  <text x="492.5" y="432" class="tool-label" text-anchor="middle">Checkov</text>
+  <text x="492.5" y="445" class="tool-sub" text-anchor="middle">IaC Scanner</text>
 
   <!-- ===== BOTTOM-RIGHT: Dynamic Runtime ===== -->
-  <!-- Falco -->
-  <rect x="440" y="490" width="145" height="55" class="tool-dynamic"/>
-  <text x="512.5" y="515" class="tool-label" text-anchor="middle">Falco</text>
-  <text x="512.5" y="530" class="tool-sub" text-anchor="middle">eBPF Syscall Monitor</text>
+  <rect x="460" y="410" width="165" height="55" class="tool-dynamic"/>
+  <text x="542.5" y="432" class="tool-label" text-anchor="middle">Falco</text>
+  <text x="542.5" y="445" class="tool-sub" text-anchor="middle">eBPF Syscall Monitor</text>
 
-  <!-- Tracee -->
-  <rect x="595" y="490" width="145" height="55" class="tool-dynamic"/>
-  <text x="667.5" y="515" class="tool-label" text-anchor="middle">Tracee</text>
-  <text x="667.5" y="530" class="tool-sub" text-anchor="middle">eBPF Runtime Security</text>
+  <rect x="635" y="410" width="165" height="55" class="tool-dynamic"/>
+  <text x="717.5" y="432" class="tool-label" text-anchor="middle">Tracee</text>
+  <text x="717.5" y="445" class="tool-sub" text-anchor="middle">eBPF Runtime Security</text>
 
-  <!-- Tetragon -->
-  <rect x="750" y="490" width="145" height="55" class="tool-dynamic"/>
-  <text x="822.5" y="515" class="tool-label" text-anchor="middle">Tetragon</text>
-  <text x="822.5" y="530" class="tool-sub" text-anchor="middle">eBPF Observability</text>
+  <rect x="810" y="410" width="165" height="55" class="tool-dynamic"/>
+  <text x="892.5" y="432" class="tool-label" text-anchor="middle">Tetragon</text>
+  <text x="892.5" y="445" class="tool-sub" text-anchor="middle">eBPF Observability</text>
 
   <!-- Main arrow pointing to bsuppla -->
-  <path d="M200 250 Q310 200 440 185" class="arrow-main"/>
+  <path d="M220 220 Q330 180 460 165" class="arrow-main"/>
 
   <!-- Legend -->
-  <rect x="580" y="20" width="240" height="110" class="legend-box"/>
-  <text x="595" y="40" class="legend-title">Legend</text>
-  <rect x="595" y="50" width="14" height="14" rx="3" fill="#dbeafe" stroke="#3b82f6" stroke-width="2"/>
-  <text x="615" y="61" class="legend-item">CVE Vulnerability Scanners</text>
-  <rect x="595" y="68" width="14" height="14" rx="3" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/>
-  <text x="615" y="79" class="legend-item">Supply-Chain / SBOM Tools</text>
-  <rect x="595" y="86" width="14" height="14" rx="3" fill="#fef3c7" stroke="#f59e0b" stroke-width="2"/>
-  <text x="615" y="97" class="legend-item">Config / Linting Tools</text>
-  <rect x="595" y="104" width="14" height="14" rx="3" fill="#fce7f3" stroke="#ec4899" stroke-width="2"/>
-  <text x="615" y="115" class="legend-item">Dynamic / Runtime Analysis</text>
-  <rect x="595" y="122" width="14" height="14" rx="3" fill="#f3e8ff" stroke="#a855f7" stroke-width="3"/>
-  <text x="615" y="133" class="legend-item" fill="#7c3aed"><strong>bsuppla (Unique Position)</strong></text>
+  <rect x="660" y="20" width="200" height="120" class="legend-box"/>
+  <text x="675" y="38" class="legend-title">Legend</text>
+  <rect x="675" y="48" width="12" height="12" rx="2" fill="#dbeafe" stroke="#3b82f6" stroke-width="2"/>
+  <text x="693" y="57" class="legend-item">CVE Vulnerability Scanners</text>
+  <rect x="675" y="64" width="12" height="12" rx="2" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/>
+  <text x="693" y="73" class="legend-item">Supply-Chain / SBOM Tools</text>
+  <rect x="675" y="80" width="12" height="12" rx="2" fill="#fef3c7" stroke="#f59e0b" stroke-width="2"/>
+  <text x="693" y="89" class="legend-item">Config / Linting Tools</text>
+  <rect x="675" y="96" width="12" height="12" rx="2" fill="#fce7f3" stroke="#ec4899" stroke-width="2"/>
+  <text x="693" y="105" class="legend-item">Dynamic / Runtime Analysis</text>
+  <rect x="675" y="112" width="12" height="12" rx="2" fill="#f3e8ff" stroke="#a855f7" stroke-width="3"/>
+  <text x="693" y="121" class="legend-item" fill="#7c3aed"><strong>bsuppla (Unique Position)</strong></text>
 </svg>

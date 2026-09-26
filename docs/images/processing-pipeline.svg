@@ -1,0 +1,90 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 680" width="900" height="680">
+  <defs>
+    <style>
+      .stage-box { fill: #f8fafc; stroke: #3b82f6; stroke-width: 2; rx: 10; }
+      .stage-box:hover { fill: #eff6ff; }
+      .stage-title { font: 600 14px 'Segoe UI', system-ui, sans-serif; fill: #1e40af; }
+      .stage-desc { font: 400 11px 'Segoe UI', system-ui, sans-serif; fill: #475569; }
+      .stage-code { font: 400 10px 'JetBrains Mono', 'Fira Code', monospace; fill: #64748b; }
+      .arrow { fill: none; stroke: #3b82f6; stroke-width: 2.5; marker-end: url(#arrowhead); }
+      .optional { fill: #fef3c7; stroke: #f59e0b; }
+      .optional .stage-title { fill: #92400e; }
+      .input-box { fill: #fee2e2; stroke: #ef4444; stroke-width: 2; rx: 8; }
+      .output-box { fill: #dcfce7; stroke: #22c55e; stroke-width: 2; rx: 8; }
+      .process-box { fill: #f3e8ff; stroke: #a855f7; stroke-width: 2; rx: 8; }
+    </style>
+    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#3b82f6"/>
+    </marker>
+  </defs>
+
+  <!-- Title -->
+  <text x="450" y="30" font="600 18px 'Segoe UI', system-ui, sans-serif" fill="#1e293b" text-anchor="middle">Analysis Pipeline Stages</text>
+
+  <!-- Stage 0: Acquisition (Optional) -->
+  <rect x="300" y="50" width="300" height="80" class="stage-box optional"/>
+  <text x="450" y="75" class="stage-title" text-anchor="middle">Stage 0: Acquisition (Optional)</text>
+  <text x="450" y="95" class="stage-desc" text-anchor="middle">docker pull + docker save → image.tar</text>
+  <text x="450" y="115" class="stage-code" text-anchor="middle">pipeline.rs → ingest/docker.rs  |  BSUPPLA_SKIP_DOCKER=1 to skip</text>
+
+  <!-- Arrow down -->
+  <path d="M450 130 L450 150" class="arrow"/>
+
+  <!-- Stage 1: Image Loading -->
+  <rect x="280" y="150" width="340" height="85" class="stage-box"/>
+  <text x="450" y="175" class="stage-title" text-anchor="middle">Stage 1: Image Loading</text>
+  <text x="450" y="195" class="stage-desc" text-anchor="middle">Parse image.tar → extract manifest.json</text>
+  <text x="450" y="215" class="stage-code" text-anchor="middle">ingest/image.rs  →  ingest/manifest.rs</text>
+
+  <!-- Arrow down -->
+  <path d="M450 235 L450 255" class="arrow"/>
+
+  <!-- Stage 2: Layer Verification -->
+  <rect x="280" y="255" width="340" height="85" class="stage-box"/>
+  <text x="450" y="280" class="stage-title" text-anchor="middle">Stage 2: Layer Verification</text>
+  <text x="450" y="300" class="stage-desc" text-anchor="middle">Verify all referenced layers exist in tar</text>
+  <text x="450" y="320" class="stage-code" text-anchor="middle">ingest/layers.rs → locate_layers()</text>
+
+  <!-- Arrow down -->
+  <path d="M450 340 L450 360" class="arrow"/>
+
+  <!-- Stage 3: Filesystem Reconstruction -->
+  <rect x="280" y="360" width="340" height="85" class="stage-box"/>
+  <text x="450" y="385" class="stage-title" text-anchor="middle">Stage 3: Filesystem Reconstruction</text>
+  <text x="450" y="405" class="stage-desc" text-anchor="middle">Extract layer.tar.gz in order (override semantics)</text>
+  <text x="450" y="425" class="stage-code" text-anchor="middle">ingest/extract.rs → build_filesystem()</text>
+
+  <!-- Arrow down -->
+  <path d="M450 445 L450 465" class="arrow"/>
+
+  <!-- Stage 4: Directory Traversal + Detection -->
+  <rect x="150" y="465" width="600" height="110" class="stage-box process-box"/>
+  <text x="450" y="490" class="stage-title" text-anchor="middle">Stage 4: Directory Traversal & Detection</text>
+  <text x="450" y="512" class="stage-desc" text-anchor="middle">Walk filesystem → build FileContext per file → query DetectorRegistry</text>
+  <text x="450" y="532" class="stage-code" text-anchor="middle">scan/scanner.rs → walk_dir()  |  detectors/default_registry() built once</text>
+  <text x="450" y="552" class="stage-code" text-anchor="middle">FileContext: path, mode, is_executable, is_world_writable, is_suid, is_sgid, normalized_path()</text>
+
+  <!-- Arrow down -->
+  <path d="M450 575 L450 595" class="arrow"/>
+
+  <!-- Stage 5: Report Generation -->
+  <rect x="280" y="595" width="340" height="75" class="stage-box output-box"/>
+  <text x="450" y="620" class="stage-title" text-anchor="middle">Stage 5: Report Generation</text>
+  <text x="450" y="640" class="stage-desc" text-anchor="middle">Allowlist filter → Baseline diff → Severity scoring → Suspicion level</text>
+  <text x="450" y="660" class="stage-code" text-anchor="middle">scan/report.rs → report_findings()</text>
+
+  <!-- Side annotations -->
+  <text x="650" y="105" font="500 11px 'Segoe UI', system-ui, sans-serif" fill="#64748b" text-anchor="start">Input: Docker Image (.tar)</text>
+  <text x="650" y="120" font="400 10px 'Segoe UI', system-ui, sans-serif" fill="#94a3b8" text-anchor="start">Untrusted — never executed</text>
+
+  <text x="650" y="640" font="500 11px 'Segoe UI', system-ui, sans-serif" fill="#64748b" text-anchor="start">Output: Findings + Suspicion</text>
+  <text x="650" y="655" font="400 10px 'Segoe UI', system-ui, sans-serif" fill="#94a3b8" text-anchor="start">Trusted — generated by verified code</text>
+
+  <!-- Data flow labels on arrows -->
+  <text x="470" y="100" font="400 9px 'Segoe UI', system-ui, sans-serif" fill="#3b82f6">image.tar</text>
+  <text x="470" y="195" font="400 9px 'Segoe UI', system-ui, sans-serif" fill="#3b82f6">manifest.json</text>
+  <text x="470" y="300" font="400 9px 'Segoe UI', system-ui, sans-serif" fill="#3b82f6">layer paths</text>
+  <text x="470" y="405" font="400 9px 'Segoe UI', system-ui, sans-serif" fill="#3b82f6">extracted filesystem</text>
+  <text x="470" y="520" font="400 9px 'Segoe UI', system-ui, sans-serif" fill="#a855f7">FileContext × N files</text>
+  <text x="470" y="610" font="400 9px 'Segoe UI', system-ui, sans-serif" fill="#22c55e">Findings[]</text>
+</svg>

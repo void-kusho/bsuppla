@@ -1,0 +1,116 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 450" width="800" height="450">
+  <defs>
+    <style>
+      .axis { stroke: #cbd5e1; stroke-width: 1; }
+      .axis-label { font: 500 11px 'Segoe UI', system-ui, sans-serif; fill: #475569; }
+      .tick-label { font: 400 9px 'Segoe UI', system-ui, sans-serif; fill: #64748b; }
+      .bar { rx: 2; }
+      .bar-perm { fill: #3b82f6; }
+      .bar-elf { fill: #a855f7; }
+      .bar-cred { fill: #ec4899; }
+      .bar-pkg { fill: #f59e0b; }
+      .bar-risk { fill: #ef4444; }
+      .legend-box { fill: #f8fafc; stroke: #cbd5e1; stroke-width: 1; rx: 4; }
+      .legend-item { font: 400 10px 'Segoe UI', system-ui, sans-serif; fill: #334155; }
+      .title { font: 600 14px 'Segoe UI', system-ui, sans-serif; fill: #1e293b; }
+      .caption { font: 400 10px 'Segoe UI', system-ui, sans-serif; fill: #64748b; }
+      .grid-line { stroke: #e2e8f0; stroke-width: 0.5; }
+    </style>
+  </defs>
+
+  <!-- Title -->
+  <text x="400" y="25" class="title" text-anchor="middle">Figure 1: Per-Detector Latency Distribution</text>
+
+  <!-- Chart area -->
+  <g transform="translate(80, 40)">
+    <!-- Y Axis -->
+    <line x1="0" y1="0" x2="0" y2="360" class="axis"/>
+    <!-- X Axis -->
+    <line x1="0" y1="360" x2="700" y2="360" class="axis"/>
+
+    <!-- Y Grid Lines & Labels -->
+    <line x1="0" y1="60" x2="700" y2="60" class="grid-line"/>
+    <text x="-10" y="64" class="tick-label" text-anchor="end">100 ns</text>
+    <line x1="0" y1="120" x2="700" y2="120" class="grid-line"/>
+    <text x="-10" y="124" class="tick-label" text-anchor="end">1 µs</text>
+    <line x1="0" y1="180" x2="700" y2="180" class="grid-line"/>
+    <text x="-10" y="184" class="tick-label" text-anchor="end">10 µs</text>
+    <line x1="0" y1="240" x2="700" y2="240" class="grid-line"/>
+    <text x="-10" y="244" class="tick-label" text-anchor="end">100 µs</text>
+    <line x1="0" y1="300" x2="700" y2="300" class="grid-line"/>
+    <text x="-10" y="304" class="tick-label" text-anchor="end">1 ms</text>
+
+    <!-- Y Axis Label -->
+    <text x="-50" y="180" class="axis-label" text-anchor="middle" transform="rotate(-90 -50 180)">Median Latency (log scale)</text>
+
+    <!-- Bars (log scale positioning) -->
+    <!-- Permission detectors (5-50 ns) - very short bars at bottom -->
+    <rect x="30" y="320" width="40" height="40" class="bar bar-perm" title="WorldWritable: 5.3 ns"/>
+    <rect x="80" y="305" width="40" height="55" class="bar bar-perm" title="ExecutableInWritable: 23.4 ns"/>
+    <rect x="130" y="305" width="40" height="55" class="bar bar-perm" title="InsecureShadow: 23.3 ns"/>
+    <rect x="180" y="295" width="40" height="65" class="bar bar-perm" title="HiddenExecutable: 30.5 ns"/>
+    <rect x="230" y="280" width="40" height="80" class="bar bar-perm" title="SuidSgid: 50.6 ns"/>
+
+    <!-- Pkg Manager detectors (20-32 ns) -->
+    <rect x="280" y="308" width="40" height="52" class="bar bar-pkg" title="ApkRepository: 21.5 ns"/>
+    <rect x="330" y="306" width="40" height="54" class="bar bar-pkg" title="ApkKey: 22.8 ns"/>
+    <rect x="380" y="305" width="40" height="55" class="bar bar-pkg" title="PkgManagerConfig: 23.6 ns"/>
+    <rect x="430" y="293" width="40" height="67" class="bar bar-pkg" title="Lockfile: 31.6 ns"/>
+
+    <!-- Risk detectors (54-57 ns) -->
+    <rect x="480" y="278" width="40" height="82" class="bar bar-risk" title="RiskyTool: 54.4 ns"/>
+    <rect x="530" y="277" width="40" height="83" class="bar bar-risk" title="CryptoMiner: 56.6 ns"/>
+    <rect x="580" y="277" width="40" height="83" class="bar bar-risk" title="StartupScript: 56.2 ns"/>
+
+    <!-- Credential detectors (58-101 ns) -->
+    <rect x="630" y="275" width="40" height="85" class="bar bar-cred" title="AuthorizedKeys: 57.7 ns"/>
+    <rect x="680" y="262" width="40" height="98" class="bar bar-cred" title="CredentialFile: 72.8 ns"/>
+    <rect x="730" y="238" width="40" height="122" class="bar bar-cred" title="PrivateKey: 100.6 ns"/>
+
+    <!-- ELF Detector (3.38 µs) - much taller -->
+    <rect x="780" y="100" width="40" height="260" class="bar bar-elf" title="ELF Analyzer: 3.38 µs"/>
+
+    <!-- X Axis Labels (rotated) -->
+    <g font-size="8" fill="#475569" text-anchor="start">
+      <text x="35" y="375" transform="rotate(-45 35 375)">WorldWritable</text>
+      <text x="85" y="375" transform="rotate(-45 85 375)">ExecInWritable</text>
+      <text x="135" y="375" transform="rotate(-45 135 375)">InsecureShadow</text>
+      <text x="185" y="375" transform="rotate(-45 185 375)">HiddenExec</text>
+      <text x="235" y="375" transform="rotate(-45 235 375)">SuidSgid</text>
+      <text x="285" y="375" transform="rotate(-45 285 375)">ApkRepository</text>
+      <text x="335" y="375" transform="rotate(-45 335 375)">ApkKey</text>
+      <text x="385" y="375" transform="rotate(-45 385 375)">PkgMgrConfig</text>
+      <text x="435" y="375" transform="rotate(-45 435 375)">Lockfile</text>
+      <text x="485" y="375" transform="rotate(-45 485 375)">RiskyTool</text>
+      <text x="535" y="375" transform="rotate(-45 535 375)">CryptoMiner</text>
+      <text x="585" y="375" transform="rotate(-45 585 375)">StartupScript</text>
+      <text x="635" y="375" transform="rotate(-45 635 375)">AuthKeys</text>
+      <text x="685" y="375" transform="rotate(-45 685 375)">CredFile</text>
+      <text x="735" y="375" transform="rotate(-45 735 375)">PrivateKey</text>
+      <text x="785" y="375" transform="rotate(-45 785 375)">ELF Analyzer</text>
+    </g>
+
+    <!-- Category Group Labels -->
+    <text x="130" y="395" font="500 10px" fill="#3b82f6" text-anchor="middle">Permissions</text>
+    <text x="380" y="395" font="500 10px" fill="#f59e0b" text-anchor="middle">Pkg Managers</text>
+    <text x="555" y="395" font="500 10px" fill="#ef4444" text-anchor="middle">Risk Tools</text>
+    <text x="680" y="395" font="500 10px" fill="#ec4899" text-anchor="middle">Credentials</text>
+    <text x="800" y="395" font="500 10px" fill="#a855f7" text-anchor="middle">ELF</text>
+  </g>
+
+  <!-- Legend -->
+  <rect x="550" y="20" width="220" height="90" class="legend-box"/>
+  <rect x="560" y="32" width="14" height="14" rx="2" fill="#3b82f6"/>
+  <text x="580" y="42" class="legend-item">Permissions (5-50 ns)</text>
+  <rect x="560" y="50" width="14" height="14" rx="2" fill="#f59e0b"/>
+  <text x="580" y="60" class="legend-item">Package Managers (20-32 ns)</text>
+  <rect x="560" y="68" width="14" height="14" rx="2" fill="#ef4444"/>
+  <text x="580" y="78" class="legend-item">Risk Tools (54-57 ns)</text>
+  <rect x="560" y="86" width="14" height="14" rx="2" fill="#ec4899"/>
+  <text x="580" y="96" class="legend-item">Credentials (58-101 ns)</text>
+  <rect x="560" y="104" width="14" height="14" rx="2" fill="#a855f7"/>
+  <text x="580" y="114" class="legend-item">ELF Analysis (3.38 µs)</text>
+
+  <!-- Caption -->
+  <text x="400" y="430" class="caption" text-anchor="middle">Permission detectors are fastest (5–50 ns). ELF detector is 50–600× slower due to file I/O and goblin parsing. Log scale Y-axis.</text>
+</svg>

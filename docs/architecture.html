@@ -233,6 +233,13 @@ where:
     └── risky.rs        # Threat pattern matching</code></pre>
       </div>
 
+      <h3>4.2 DetectorRegistry Architecture</h3>
+
+      <div class="figure">
+        <img src="images/architecture.svg" alt="DetectorRegistry Architecture" style="max-width: 100%; height: auto;">
+        <div class="figure-caption"><strong>Figure 2:</strong> DetectorRegistry with four detector categories implementing the <code>Detector</code> trait. All detectors are registered at compile time via <code>default_registry()</code>.</div>
+      </div>
+
       <h3>4.2 Component Responsibilities</h3>
 
       <table>
@@ -442,43 +449,13 @@ pub enum Severity {
         </tbody>
       </table>
 
-      <h2 id="processing-pipeline">6. Processing Pipeline</h2>
+<h2 id="processing-pipeline">6. Processing Pipeline</h2>
 
       <p>The analysis pipeline follows a strict sequence with well-defined data flow:</p>
 
-      <div class="diagram">
-        <pre><code>+------------------------+     +------------------------+
-| Docker Image (.tar)    |     | Acquire (optional)     |
-| Untrusted Input        |     | pipeline.rs → docker   |
-|                        |     | pull + save            |
-+-----------+------------+     +-----------+------------+
-            |                            |
-            v                            v
-+------------------------------------------+
-| ingest/                                  |
-| image.rs   manifest.json parsing         |
-| manifest.rs manifest model               |
-| layers.rs  locate_layers()  verification |
-| extract.rs filesystem reconstruction     |
-+---------------------+--------------------+
-                      |
-                      v
-+------------------------------------------+
-| scan/scanner.rs     walk_dir()           |
-| registry built once, passed down walk    |
-+---------------------+--------------------+
-                      |
-                      v
-+------------------------------------------+
-| detectors/          ctx = FileContext    |
-| default_registry()  findings = detect()  |
-+---------------------+--------------------+
-                      |
-                      v
-+------------------------------------------+
-| scan/ allowlist + baseline filtering     |
-| scan/report.rs  output + suspicion level |
-+------------------------------------------+</code></pre>
+      <div class="figure">
+        <img src="images/processing-pipeline.svg" alt="Analysis Pipeline Stages" style="max-width: 100%; height: auto;">
+        <div class="figure-caption"><strong>Figure 1:</strong> Six-stage analysis pipeline from Docker image acquisition through report generation. Stage 0 is optional (skippable via <code>BSUPPLA_SKIP_DOCKER</code>).</div>
       </div>
 
       <h3>6.1 Stage Specifications</h3>

@@ -201,13 +201,10 @@ cargo run -- alpine:latest alpine.tar</code></pre>
       <h2>Architecture</h2>
       <p>The system uses a plugin-based detection framework:</p>
       
-      <pre><code>┌─────────────────────────────────────────────────────────┐
-│                   DetectorRegistry                        │
-│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐   │
-│  │Permission│ │   ELF    │ │Credential│ │  Risk    │   │
-│  │Detector  │ │ Analyzer │ │ Detector │ │ Detector │   │
-│  └──────────┘ └──────────┘ └──────────┘ └──────────┘   │
-└─────────────────────────────────────────────────────────┘</code></pre>
+      <div class="figure">
+        <img src="images/architecture.svg" alt="DetectorRegistry Architecture" style="max-width: 100%; height: auto;">
+        <div class="figure-caption"><strong>Figure:</strong> DetectorRegistry with four detector categories implementing the <code>Detector</code> trait.</div>
+      </div>
 
       <p>Each detector implements the <code>Detector</code> trait, enabling:</p>
       <ul>

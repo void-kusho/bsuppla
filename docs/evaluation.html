@@ -293,7 +293,8 @@
       </table>
 
       <div class="figure">
-        <div class="figure-caption"><strong>Figure 1:</strong> Per-detector latency distribution. Permission detectors are fastest (5–50 ns). ELF detector is 50–600× slower due to file I/O and parsing.</div>
+        <img src="images/eval-figure1.svg" alt="Per-Detector Latency Distribution" style="max-width: 100%; height: auto;">
+        <div class="figure-caption"><strong>Figure 1:</strong> Per-detector latency distribution. Permission detectors are fastest (5–50 ns). ELF detector is 50–600× slower due to file I/O and parsing. Log scale Y-axis.</div>
       </div>
 
       <h3>2.2 Registry Throughput</h3>
@@ -474,6 +475,7 @@
       </table>
 
       <div class="figure">
+        <img src="images/eval-figure2.svg" alt="End-to-End Time Breakdown" style="max-width: 100%; height: auto;">
         <div class="figure-caption"><strong>Figure 2:</strong> End-to-end time dominated by Docker pull/save (network + tar I/O). Scan phase is <1% of total for large images.</div>
       </div>
 
@@ -754,6 +756,7 @@
       </table>
 
       <div class="figure">
+        <img src="images/eval-figure3.svg" alt="Scalability Analysis" style="max-width: 100%; height: auto;">
         <div class="figure-caption"><strong>Figure 3:</strong> Scan time vs. file count. Linear regression: Time = 0.0041 × Files + 0.7 ms (R² = 0.998). Memory: RSS = 0.0025 × Files + 5.8 MB (R² = 0.992).</div>
       </div>
 

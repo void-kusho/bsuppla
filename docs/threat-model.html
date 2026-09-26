@@ -196,30 +196,8 @@
 
       <h3>2.1 Trust Boundary Diagram</h3>
       <div class="figure">
-        <pre><code>
-┌─────────────────────────────────────────────────────────────────┐
-│                        TRUSTED HOST                              │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────────────┐  │
-│  │ bsuppla      │  │ Docker       │  │ Host Kernel / FS     │  │
-│  │ Binary       │  │ Daemon       │  │ (Trusted)            │  │
-│  │ (Trusted)    │  │ (Trusted*)   │  │                      │  │
-│  └──────┬───────┘  └──────┬───────┘  └──────────┬───────────┘  │
-│         │                 │                      │              │
-│         │ BSUPPLA_        │ docker pull/save     │              │
-│         │ SKIP_DOCKER     │ (optional)           │              │
-│         ▼                 ▼                      ▼              │
-│  ┌──────────────────────────────────────────────────────────┐  │
-│  │                    ANALYSIS BOUNDARY                      │  │
-│  │  ┌──────────────┐  ┌──────────────┐  ┌────────────────┐  │  │
-│  │  │ Input:       │  │ Processing:  │  │ Output:        │  │  │
-│  │  │ Docker Image │─►│ Extract +    │─►│ Findings +     │  │  │
-│  │  │ (UNTRUSTED)  │  │ Scan         │  │ Suspicion      │  │  │
-│  │  └──────────────┘  │ (Trusted)    │  │ (Trusted)      │  │  │
-│  │                    └──────────────┘  └────────────────┘  │  │
-│  └──────────────────────────────────────────────────────────┘  │
-└─────────────────────────────────────────────────────────────────┘
-* Docker daemon only used for acquisition phase; skipped if BSUPPLA_SKIP_DOCKER=1
-</code></pre>
+        <img src="images/trust-boundary.svg" alt="Trust Boundary Diagram" style="max-width: 100%; height: auto;">
+        <div class="figure-caption"><strong>Figure 2:</strong> Trust boundaries in bsuppla. The analysis boundary isolates untrusted input (Docker image) from trusted components. Docker daemon is only used for acquisition and can be skipped via <code>BSUPPLA_SKIP_DOCKER=1</code>.</div>
       </div>
 
       <h2 id="adversary">3. Adversary Model</h3>

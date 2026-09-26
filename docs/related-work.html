@@ -483,30 +483,11 @@
         </tbody>
       </table>
 
-      <h2 id="positioning">8. Positioning Map</h2>
+<h2 id="positioning">8. Positioning Map</h2>
 
       <div class="figure">
-        <pre><code>
-                    │                          │
-    CVE-Focused    │                          │  Supply-Chain Focused
-    (Vuln Mgmt)    │                          │  (Threat Detection)
-                    │                          │
-         Trivy ────┼──── Grype                │
-         Clair ────┼──── Docker Scan          │
-                    │                          │
-                    │            bsuppla ──────┼──►
-                    │                          │
-         Dockle ────┼──── Checkov              │
-         Hadolint ───┼────                     │
-                    │                          │
-                    │            Falco ────────┼──►
-                    │            Tracee ───────┤
-                    │            Tetragon ─────┤
-                    │                          │
-         Static    ◄───────────────────────────┼────► Dynamic
-         (Safe)                                 (Risk)
-</code></pre>
-        <div class="figure-caption"><strong>Figure:</strong> Tool positioning map. bsuppla uniquely occupies the intersection of Static Analysis + Supply-Chain Threat Detection with Zero-Execution Guarantee.</div>
+        <img src="images/tool-positioning.svg" alt="Tool Positioning Map" style="max-width: 100%; height: auto;">
+        <div class="figure-caption"><strong>Figure 3:</strong> Tool positioning map. bsuppla uniquely occupies the intersection of Static Analysis + Supply-Chain Threat Detection with Zero-Execution Guarantee. Unlike CVE scanners (top-left) or dynamic tools (bottom-right), bsuppla analyzes container images for supply-chain threats without ever executing code.</div>
       </div>
 
       <h2 id="gaps">9. Research Gaps Addressed by bsuppla</h2>

@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 320" width="720" height="320">
+  <defs>
+    <style>
+      .detector-box { fill: #e8f4fd; stroke: #2a7ae2; stroke-width: 2; rx: 8; }
+      .detector-box:hover { fill: #d0e8f7; }
+      .registry-box { fill: #f5f5f5; stroke: #666; stroke-width: 2; stroke-dasharray: 8 4; rx: 12; }
+      .title { font: 600 16px 'Segoe UI', system-ui, sans-serif; fill: #1a1a2e; }
+      .label { font: 500 13px 'Segoe UI', system-ui, sans-serif; fill: #2a7ae2; }
+      .label-small { font: 400 11px 'Segoe UI', system-ui, sans-serif; fill: #555; }
+      .arrow { fill: none; stroke: #666; stroke-width: 2; marker-end: url(#arrowhead); }
+      .arrow-dashed { fill: none; stroke: #999; stroke-width: 1.5; stroke-dasharray: 6 4; }
+    </style>
+    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#666"/>
+    </marker>
+  </defs>
+
+  <!-- Registry Container -->
+  <rect x="40" y="30" width="640" height="260" class="registry-box"/>
+  <text x="360" y="55" class="title" text-anchor="middle">DetectorRegistry</text>
+
+  <!-- Detector Boxes - 2x2 grid -->
+  <!-- Permission Detector -->
+  <rect x="80" y="80" width="260" height="100" class="detector-box"/>
+  <text x="210" y="115" class="label" text-anchor="middle">Permission Detector</text>
+  <text x="210" y="138" class="label-small" text-anchor="middle">SUID/SGID, World-Writable,</text>
+  <text x="210" y="154" class="label-small" text-anchor="middle">Executable in Writable Dir,</text>
+  <text x="210" y="170" class="label-small" text-anchor="middle">Hidden Executable, Shadow</text>
+
+  <!-- ELF Analyzer -->
+  <rect x="380" y="80" width="260" height="100" class="detector-box"/>
+  <text x="510" y="115" class="label" text-anchor="middle">ELF Analyzer</text>
+  <text x="510" y="138" class="label-small" text-anchor="middle">Stripped Binary Detection</text>
+  <text x="510" y="154" class="label-small" text-anchor="middle">Static Linking Analysis</text>
+  <text x="510" y="170" class="label-small" text-anchor="middle">Packer/UPX Detection</text>
+
+  <!-- Credential Detector -->
+  <rect x="80" y="205" width="260" height="100" class="detector-box"/>
+  <text x="210" y="240" class="label" text-anchor="middle">Credential Detector</text>
+  <text x="210" y="263" class="label-small" text-anchor="middle">Private Key Detection</text>
+  <text x="210" y="279" class="label-small" text-anchor="middle">Authorized Keys Check</text>
+  <text x="210" y="295" class="label-small" text-anchor="middle">Credential File Patterns</text>
+
+  <!-- Risk Detector -->
+  <rect x="380" y="205" width="260" height="100" class="detector-box"/>
+  <text x="510" y="240" class="label" text-anchor="middle">Risk Detector</text>
+  <text x="510" y="263" class="label-small" text-anchor="middle">Crypto Miner Signatures</text>
+  <text x="510" y="279" class="label-small" text-anchor="middle">Risky Tool Names</text>
+  <text x="510" y="295" class="label-small" text-anchor="middle">Startup Script Patterns</text>
+
+  <!-- Trait annotation -->
+  <text x="360" y="305" class="label-small" text-anchor="middle" fill="#888">All detectors implement the Detector trait • Open/Closed Principle • Zero-boilerplate PathRule support</text>
+</svg>

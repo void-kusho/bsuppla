@@ -438,12 +438,11 @@ risky_tool_present: /usr/bin/curl</code></pre>
         </tbody>
       </table>
 
-      <h3>7.3 Scalability</h3>
-      <div class="figure">
-        <p><strong>Figure:</strong> Scan time scales linearly with file count (R² = 0.99). Memory scales sub-linearly due to streaming extraction.</p>
-        <pre><code>Time (ms) ≈ 0.0052 × Files + 2.1
-Memory (MB) ≈ 0.0018 × Files + 5.2</code></pre>
-      </div>
+<h3>7.3 Scalability</h3>
+       <div class="figure">
+         <img src="images/eval-figure3.svg" alt="Scalability Analysis" style="max-width: 100%; height: auto;">
+         <div class="figure-caption"><strong>Figure:</strong> Scan time scales linearly with file count (R² = 0.998). Memory scales sub-linearly due to streaming extraction (R² = 0.992).</div>
+       </div>
 
       <h2 id="ablation">8. Ablation Study</h3>
       <p>Impact of each detector category on overall detection (tested on malicious corpus):</p>
